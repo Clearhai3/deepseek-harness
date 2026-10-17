@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
-  desktopBuildRecordFilename,
   desktopUpdateMetadataFilename,
   resolveDesktopAutoUpdateConfig,
   resolveDesktopAutoUpdateEnvironment,
   resolveDesktopAutoUpdateTarget,
   resolveDesktopUploadConfig,
 } from '../scripts/desktop-auto-update-environment.mjs'
+import { desktopBuildRecordFilename } from '../scripts/desktop-build-paths.mjs'
 
 const RELEASE_ID = '0123456789abcdef0123456789abcdef'
 
@@ -108,7 +108,7 @@ describe('desktop auto-update environment', () => {
       DSH_DESKTOP_AUTO_UPDATE_ENV: 'staging',
     })).toThrow(/test.*production/u)
     expect(() => resolveDesktopAutoUpdateTarget('linux', 'x64')).toThrow(/unsupported target/u)
-    expect(() => desktopBuildRecordFilename('linux-x64' as 'mac-arm64')).toThrow(/unsupported target/u)
+    expect(() => desktopBuildRecordFilename('linux-x64')).toThrow(/unsupported target/u)
   })
 
   it('uses Nightly metadata for stable and prerelease Desktop versions', () => {

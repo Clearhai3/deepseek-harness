@@ -64,18 +64,6 @@ export function resolveDesktopAutoUpdateTarget(platform, arch) {
 }
 
 /**
- * Return the local completion record filename for one packaged target.
- * @param {'mac-arm64' | 'mac-x64' | 'win-x64'} target - Supported release target.
- * @returns {string} Filename stored beside electron-builder artifacts.
- */
-export function desktopBuildRecordFilename(target) {
-  if (!UPDATE_TARGETS.has(target)) {
-    throw new Error(`desktop auto-update: unsupported target ${target}`)
-  }
-  return `${target}-release.json`
-}
-
-/**
  * Return the electron-builder channel metadata filename for an application version.
  * @param {string} version - Desktop semantic version.
  * @param {NodeJS.Platform} platform - Target platform.

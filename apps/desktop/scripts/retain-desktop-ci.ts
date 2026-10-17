@@ -1,8 +1,8 @@
 /** Retain completed CI packages for later manual publication. */
 import { appendFile, readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
-import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
-import { desktopBuildRecordFilename, desktopUpdateMetadataFilename, resolveDesktopUpdateChannel } from './desktop-auto-update-environment.mjs'
+import { desktopTargetBuildPaths, resolveDesktopBuildTarget, desktopBuildRecordFilename, isDesktopReleaseTarget } from './desktop-build-paths.mjs'
+import { desktopUpdateMetadataFilename, resolveDesktopUpdateChannel } from './desktop-auto-update-environment.mjs'
 import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { retainDesktopRelease, type DesktopRetainedSource } from './desktop-release-store.ts'
 import { validateDesktopBuildVersion } from './desktop-build-version.mjs'
@@ -33,6 +33,9 @@ export function desktopReleasesRoot(env: NodeJS.ProcessEnv): string {
  */
 export async function retainDesktopCi(env: NodeJS.ProcessEnv, appRoot = resolve(import.meta.dirname, '..')): Promise<string> {
   const target = resolveDesktopBuildTarget(env)
+  if (!isDesktopReleaseTarget(target)) {
+    throw new Error(`desktop retention: ${target} is not a retained release target`)
+  }
   const windows = target === 'win-x64'
   const platform = windows ? 'win32' : 'darwin'
   const settings = loadDesktopPackageEnvironment(platform, env, appRoot, { unsigned: true })

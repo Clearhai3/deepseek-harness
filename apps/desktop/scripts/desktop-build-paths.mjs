@@ -1,10 +1,26 @@
 /** Resolve build-owned Desktop paths without sharing mutable state across release targets. */
 
-import { join, resolve } from 'node:path'
+import { join, resolve, win32 } from 'node:path'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_ROOT = join(APP_ROOT, '.desktop-build')
-const SUPPORTED_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64'])
+const SUPPORTED_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64', 'linux-x64'])
+const TARGET_INFO = {
+  'mac-arm64': { platform: 'darwin', arch: 'arm64' },
+  'mac-x64': { platform: 'darwin', arch: 'x64' },
+  'win-x64': { platform: 'win32', arch: 'x64' },
+  'linux-x64': { platform: 'linux', arch: 'x64' },
+}
+
+/** Electron executable path inside the extracted runtime, per host platform. */
+export const ELECTRON_EXECUTABLE = {
+  win32: 'electron.exe',
+  darwin: 'Electron.app/Contents/MacOS/Electron',
+  linux: 'electron',
+}
+
+/** Targets that publish retained releases; Linux packages are built but not published. */
+const RELEASE_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64'])
 
 /**
  * Resolve the fixed build target selected by a packaging environment.
@@ -69,10 +85,7 @@ export function desktopTargetBuildPaths(target) {
  */
 export function desktopTargetPlatform(target) {
   assertSupportedTarget(target)
-  return {
-    platform: /** @type {'darwin' | 'win32'} */ (target === 'win-x64' ? 'win32' : 'darwin'),
-    arch: /** @type {'arm64' | 'x64'} */ (target === 'mac-arm64' ? 'arm64' : 'x64'),
-  }
+  return TARGET_INFO[target]
 }
 
 /**
@@ -117,4 +130,20 @@ export function desktopArtifactOutput(paths, mode) {
   if (mode.unsigned) return { directory: paths.unsignedArtifacts, suffix: '-unsigned' }
   if (mode.skipNotarization) return { directory: paths.unnotarizedArtifacts, suffix: '-unnotarized' }
   return { directory: paths.artifacts, suffix: '' }
+}
+
+/**
+ * Report whether one build target publishes a ratained release.
+ * @param {import {'./desktop-build-paths.d.mts'}.DesktopBuildTarget} target Build target name.
+ * @returns {boolean} Whether the target is a release target.
+ */
+export function isDesktopReleaseTarget(target) {
+  return RELEASE_TARGETS.has(target)
+}
+
+export function desktopBuildRecordFilename(target) {
+  if (!isDesktopReleaseTarget(target)) {
+    throw new Error(`desktop build paths:unsupported target ${target}`)
+  }
+  return `${target}-release.json`
 }

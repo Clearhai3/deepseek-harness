@@ -46,13 +46,6 @@ export function resolveDesktopAutoUpdateTarget(
 ): DesktopAutoUpdateTarget
 
 /**
- * Return the local completion record filename for one packaged target.
- * @param target - Supported release target.
- * @returns Filename stored beside electron-builder artifacts.
- */
-export function desktopBuildRecordFilename(target: DesktopAutoUpdateTarget): string
-
-/**
  * Return the electron-builder channel metadata filename for an application version.
  * @param version - Desktop semantic version.
  * @param platform - Target platform.
