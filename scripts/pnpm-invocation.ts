@@ -5,6 +5,7 @@
  * @param args - Arguments to pass to pnpm.
  * @param environment - Lifecycle environment containing `npm_execpath`.
  * @returns A command and argument array suitable for `spawn` or `spawnSync` without a shell.
+ * @throws When `npm_execpath` is unavailable, or names a `.cmd` shim that cannot start without a shell.
  */
 export function pnpmInvocation(
   args: readonly string[],
@@ -16,6 +17,9 @@ export function pnpmInvocation(
   }
   if (/\.[cm]?js$/iu.test(entrypoint)) {
     return { command: process.execPath, args: [entrypoint, ...args] }
+  }
+  if (/\.cmd$/iu.test(entrypoint)) {
+    throw new Error('pnpm invocation: npm_execpath names a .cmd shim, which cannot start without a shell; run this through pnpm\'s JavaScript entry.')
   }
   return { command: entrypoint, args: [...args] }
 }

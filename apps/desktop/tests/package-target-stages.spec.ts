@@ -221,3 +221,13 @@ it('fails debugging packages when runtime verification fails', async () => {
   expect(stages.at(-1)).toBe(failure)
   expect(writeFileSync).not.toHaveBeenCalled()
 })
+
+it('runs a native pnpm executable directly instead of handing it to Node', async () => {
+  vi.stubEnv('npm_execpath', '/tools/pnpm')
+  const run = { directory: 'fixture-record', finish: vi.fn(),
+    run: vi.fn(async (_stage: string, _executable: string, _args: readonly string[], _options: { env: NodeJS.ProcessEnv }) => {}) }
+  await packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), environment, run)
+  const build = run.run.mock.calls.find(([stage]) => stage === 'run build:official')!
+  expect(build[1]).toBe('/tools/pnpm')
+  expect(build[2]).toEqual(['run', 'build:official'])
+})

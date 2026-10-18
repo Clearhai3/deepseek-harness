@@ -30,4 +30,9 @@ describe('pnpm invocation', () => {
     expect(() => pnpmInvocation([], { npm_execpath: entrypoint }))
       .toThrow('npm_execpath is unavailable; invoke the script through pnpm run')
   })
+
+  it('rejects a Windows command shim it cannot start without a shell', () => {
+    expect(() => pnpmInvocation([], { npm_execpath: String.raw`C:\tools\pnpm.cmd` }))
+      .toThrow('cannot start without a shell')
+  })
 })
