@@ -42,6 +42,14 @@ export interface DesktopElectronBuilderConfig {
       readonly signingHashAlgorithms: readonly string[]
     }
   }
+  readonly linux: {
+    readonly target: readonly ['deb']
+    readonly executableName: 'deepseek-harness'
+    readonly maintainer: string
+  }
+  readonly deb: {
+    readonly packageName: 'deepseek-harness'
+  }
   readonly nsis: {
     readonly include: string
     readonly oneClick: false
