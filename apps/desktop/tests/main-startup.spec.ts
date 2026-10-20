@@ -349,6 +349,8 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
   readonly install = harness.updateInstall
   readonly dispose = vi.fn()
 } }))
+const updateSource = vi.hoisted(() => ({ packaged: true }))
+vi.mock('../src/update-source.ts', () => ({ hasPackagedUpdateSource: () => updateSource.packaged }))
 vi.mock('../src/platform-view.ts', async importOriginal => ({
   ...await importOriginal<typeof import('../src/platform-view.ts')>(),
   DesktopPlatformView: class {
@@ -456,6 +458,15 @@ describe('desktop main startup', () => {
         : 'test-pnpm',
       nodeBin: packaged ? join('desktop-test-resources', 'runtime', 'bin') : join('desktop-test-app', 'scripts', 'node-bin'),
     })
+  })
+
+  it('omits the update command when the build ships no update feed', async () => {
+    updateSource.packaged = false
+    try {
+      await import('../src/main.ts')
+      await harness.preparing.promise
+      expect(applicationMenuItems().some(item => item.label === en.checkUpdatesMenu)).toBe(false)
+    } finally { updateSource.packaged = true }
   })
 
   it('starts the Host with authentication popups disabled when local settings are invalid', async () => {

@@ -47,7 +47,7 @@ describe('desktop release metadata', () => {
 const coordinators: InstanceType<typeof DesktopUpdateCoordinator>[] = []
 afterEach(() => { for (const item of coordinators.splice(0)) item.dispose() })
 
-function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alpha.1') {
+function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alpha.1', enabled = true) {
   const events = new EventEmitter()
   const checkForUpdates = vi.fn(async () => ({
     isUpdateAvailable: true,
@@ -66,7 +66,7 @@ function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alp
   const updater = Object.assign(events, { checkForUpdates, downloadUpdate, quitAndInstall }) as unknown as AppUpdater
   const coordinator = new DesktopUpdateCoordinator(
     (state) => { states.push(state); return state },
-    beforeRestart, updater, () => true, () => version, downloadResult, channel,
+    beforeRestart, updater, () => enabled, () => version, downloadResult, channel,
   )
   coordinators.push(coordinator)
   return { coordinator, updater, events, states, checkForUpdates, downloadUpdate, quitAndInstall, beforeRestart, downloadResult }
@@ -85,6 +85,13 @@ describe('desktop update coordinator', () => {
     f.beforeRestart.mockResolvedValueOnce(false)
     expect(await f.coordinator.install('1.1.0-rc.2')).toEqual({ phase: 'ready', version: '1.1.0-rc.2' })
     expect(f.quitAndInstall).not.toHaveBeenCalled()
+  })
+
+  it('stays idle instead of reporting a failure when the build has no update feed', async () => {
+    const f = fixture('nightly', '1.1.0-alpha.1', false)
+    expect(await f.coordinator.check(true)).toEqual({ phase: 'idle' })
+    expect(f.checkForUpdates).not.toHaveBeenCalled()
+    expect(f.states).toEqual([{ phase: 'idle' }])
   })
 
   it('retains an asynchronous installer failure after quitAndInstall returns', async () => {
