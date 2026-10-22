@@ -1,34 +1,54 @@
 import { describe, expect, it } from 'vitest'
-import { parseArchiveIndex, SECTION_KINDS } from '../src/archive-index.ts'
+import {
+  APPEND_LAYOUTS, dailyEntryPath, parseArchiveIndex, SECTION_KINDS, SECTION_LEVELS, SECTION_WARNINGS,
+} from '../src/archive-index.ts'
 
-const VALID = `version: 1
-sections:
-  - name: identity
-    path: .github/copilot-instructions.md
-    kind: always-loaded
-    description: I am who I am
-  - name: journal
-    path: journal/
-    kind: append
-`
+const BASE = { name: 'a', path: 'a.md', kind: 'reference', level: 'free', warning: 'none' }
+
+function doc(...entries: Record<string, unknown>[]): string {
+  const body = entries
+    .map(entry => `  - ${Object.entries(entry).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n    ')}`)
+    .join('\n')
+  return `version: 2\nsections:\n${body}\n`
+}
 
 describe('archive index', () => {
   it('reads sections in declaration order', () => {
-    expect(parseArchiveIndex(VALID)).toEqual({
-      version: 1,
+    expect(parseArchiveIndex(doc(
+      { name: 'identity', path: 'identity.md', kind: 'always-loaded', level: 'soft', warning: 'strong', description: 'who I am' },
+      { name: 'journal', path: 'journal/', kind: 'append', level: 'free', warning: 'none', layout: 'daily' },
+    ))).toEqual({
+      version: 2,
       sections: [
-        { name: 'identity', path: '.github/copilot-instructions.md', kind: 'always-loaded', description: 'I am who I am' },
-        { name: 'journal', path: 'journal/', kind: 'append' },
+        { name: 'identity', path: 'identity.md', kind: 'always-loaded', level: 'soft', warning: 'strong', description: 'who I am' },
+        { name: 'journal', path: 'journal/', kind: 'append', level: 'free', warning: 'none', layout: 'daily' },
       ],
     })
   })
 
-  it('accepts every declared section kind', () => {
-    const declared = SECTION_KINDS
-      .map(kind => `  - name: ${kind}\n    path: ${kind}\n    kind: ${kind}`)
-      .join('\n')
-    expect(parseArchiveIndex(`version: 1\nsections:\n${declared}\n`).sections.map(section => section.kind))
-      .toEqual([...SECTION_KINDS])
+  it('accepts every declared kind, level and warning', () => {
+    const declared = SECTION_KINDS.map(kind => ({
+      name: kind,
+      path: kind === 'append' ? `${kind}/` : kind,
+      kind,
+      level: 'free',
+      warning: 'none',
+      ...(kind === 'append' ? { layout: 'daily' } : {}),
+    }))
+    expect(parseArchiveIndex(doc(...declared)).sections.map(section => section.kind)).toEqual([...SECTION_KINDS])
+    for (const level of SECTION_LEVELS) {
+      expect(parseArchiveIndex(doc({ ...BASE, level })).sections[0]?.level).toBe(level)
+    }
+    for (const warning of SECTION_WARNINGS) {
+      expect(parseArchiveIndex(doc({ ...BASE, warning })).sections[0]?.warning).toBe(warning)
+    }
+  })
+
+  it('accepts every append layout at a matching path', () => {
+    const declared = APPEND_LAYOUTS.map(layout => ({
+      name: layout, path: layout === 'daily' ? 'daily/' : 'single.md', kind: 'append', level: 'free', warning: 'none', layout,
+    }))
+    expect(parseArchiveIndex(doc(...declared)).sections.map(section => section.layout)).toEqual([...APPEND_LAYOUTS])
   })
 
   it('rejects YAML that does not parse', () => {
@@ -41,40 +61,70 @@ describe('archive index', () => {
 
   it('rejects a missing or unsupported version', () => {
     expect(() => parseArchiveIndex('sections: []')).toThrow(/unsupported version/u)
-    expect(() => parseArchiveIndex('version: 2\nsections: []')).toThrow(/unsupported version/u)
+    expect(() => parseArchiveIndex('version: 1\nsections: []')).toThrow(/unsupported version/u)
+    expect(() => parseArchiveIndex('version: 3\nsections: []')).toThrow(/unsupported version/u)
   })
 
   it('rejects a missing or empty section list', () => {
-    expect(() => parseArchiveIndex('version: 1')).toThrow(/non-empty list/u)
-    expect(() => parseArchiveIndex('version: 1\nsections: []')).toThrow(/non-empty list/u)
+    expect(() => parseArchiveIndex('version: 2')).toThrow(/non-empty list/u)
+    expect(() => parseArchiveIndex('version: 2\nsections: []')).toThrow(/non-empty list/u)
   })
 
   it('rejects a section that is not a mapping', () => {
-    expect(() => parseArchiveIndex('version: 1\nsections: [1]')).toThrow(/sections\[0\] must be a mapping/u)
+    expect(() => parseArchiveIndex('version: 2\nsections: [1]')).toThrow(/sections\[0\] must be a mapping/u)
   })
 
   it('rejects an empty name and a duplicate name', () => {
-    expect(() => parseArchiveIndex('version: 1\nsections:\n  - name: ""\n    path: a\n    kind: reference'))
+    expect(() => parseArchiveIndex(doc({ ...BASE, name: '' })))
       .toThrow(/sections\[0\]\.name must be a non-empty string/u)
-    expect(() => parseArchiveIndex('version: 1\nsections:\n  - name: a\n    path: a\n    kind: reference\n  - name: a\n    path: b\n    kind: reference'))
+    expect(() => parseArchiveIndex(doc(BASE, { ...BASE, path: 'b.md' })))
       .toThrow(/duplicate section name/u)
   })
 
-  it('rejects an unknown kind', () => {
-    expect(() => parseArchiveIndex('version: 1\nsections:\n  - name: a\n    path: a\n    kind: writable'))
-      .toThrow(/kind must be one of/u)
+  it('rejects an unknown kind, level or warning', () => {
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'writable' }))).toThrow(/kind must be one of/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, level: 'locked' }))).toThrow(/level must be one of/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, warning: 'loud' }))).toThrow(/warning must be one of/u)
+  })
+
+  it('requires a layout for append and forbids it elsewhere', () => {
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j/' }))).toThrow(/layout is required/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, layout: 'daily' }))).toThrow(/only allowed when kind is append/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j/', layout: 'weekly' })))
+      .toThrow(/layout must be one of/u)
+  })
+
+  it('matches the path shape to the layout', () => {
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j.md', layout: 'daily' })))
+      .toThrow(/must be a directory when layout is daily/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j/', layout: 'timeline' })))
+      .toThrow(/must be a file when layout is timeline/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'always-loaded', path: 'dir/' })))
+      .toThrow(/must be a file, not a directory/u)
   })
 
   it('rejects a non-string description', () => {
-    expect(() => parseArchiveIndex('version: 1\nsections:\n  - name: a\n    path: a\n    kind: reference\n    description: 1'))
-      .toThrow(/description must be a string/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, description: 1 }))).toThrow(/description must be a string/u)
   })
 
   it('rejects a path that leaves the archive root', () => {
-    const entry = (path: string): string =>
-      `version: 1\nsections:\n  - name: a\n    path: ${JSON.stringify(path)}\n    kind: reference`
     for (const path of ['', '/etc/passwd', '..', '../x', 'a\\b']) {
-      expect(() => parseArchiveIndex(entry(path))).toThrow(/path must/u)
+      expect(() => parseArchiveIndex(doc({ ...BASE, path }))).toThrow(/path must/u)
+    }
+  })
+
+  it('refuses a path that targets the archive map itself', () => {
+    expect(() => parseArchiveIndex(doc({ ...BASE, path: 'archive.yaml' }))).toThrow(/may not target the archive map/u)
+  })
+
+  it('builds a daily entry path from a calendar date', () => {
+    expect(dailyEntryPath('journal/', '2026-10-22')).toBe('journal/2026-10/2026-10-22.md')
+    expect(dailyEntryPath('notes', '2026-10-22')).toBe('notes/2026-10/2026-10-22.md')
+  })
+
+  it('rejects a date that is not YYYY-MM-DD', () => {
+    for (const date of ['2026-10-2', '26-10-22', '2026//10/22', '', '2026-10-22T00:00:00']) {
+      expect(() => dailyEntryPath('journal/', date)).toThrow(/YYYY-MM-DD/u)
     }
   })
 })

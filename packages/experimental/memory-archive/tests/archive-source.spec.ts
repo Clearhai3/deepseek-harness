@@ -7,15 +7,20 @@ import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
 import { loadArchiveIndex } from '../src/archive-source.ts'
 import { renderArchiveList } from '../src/list-output.ts'
 
-const VALID = `version: 1
+const VALID = `version: 2
 sections:
   - name: identity
     path: .github/copilot-instructions.md
     kind: always-loaded
+    level: soft
+    warning: strong
     description: I am who I am
   - name: journal
     path: journal/
     kind: append
+    level: free
+    warning: none
+    layout: daily
 `
 
 let dir: string
@@ -51,20 +56,20 @@ describe('loadArchiveIndex', () => {
 
   it('surfaces a malformed map as a plain error', async () => {
     await writeFile(join(dir, 'archive.yaml'), 'version: 2\nsections: []\n', 'utf8')
-    await expect(loadArchiveIndex(ctx, dir)).rejects.toThrow(/unsupported version/u)
+    await expect(loadArchiveIndex(ctx, dir)).rejects.toThrow(/non-empty list/u)
   })
 })
 
 describe('renderArchiveList', () => {
   it('lists every section in declaration order with its kind and path', () => {
     expect(renderArchiveList({
-      version: 1,
+      version: 2,
       sections: [
-        { name: 'identity', path: 'a.md', kind: 'always-loaded', description: 'who I am' },
-        { name: 'journal', path: 'journal/', kind: 'append' },
+        { name: 'identity', path: 'a.md', kind: 'always-loaded', level: 'soft', warning: 'strong', description: 'who I am' },
+        { name: 'journal', path: 'journal/', kind: 'append', level: 'free', warning: 'none', layout: 'daily' },
       ],
     })).toBe([
-      'memory archive (version 1): 2 sections',
+      'memory archive (version 2): 2 sections',
       '- identity [always-loaded] a.md — who I am',
       '- journal [append] journal/',
     ].join('\n'))
