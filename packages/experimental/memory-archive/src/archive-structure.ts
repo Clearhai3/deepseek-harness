@@ -1,5 +1,11 @@
 /** Reading and rewriting the `##` blocks of a markdown document. */
 
+/** Heading of the block that receives timestamped list items. */
+export const TIME_BLOCK = '时间'
+
+/** Heading of the block that receives event stanzas. */
+export const EVENT_BLOCK = '事件'
+
 /** One `##` block, located by line index. */
 export interface Block {
   /** Heading text without the `##` prefix. */

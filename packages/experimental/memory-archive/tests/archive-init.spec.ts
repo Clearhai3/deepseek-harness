@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
-import { calendarDate, initArchive } from '../src/archive-init.ts'
+import { readClock } from '../src/archive-clock.ts'
+import { initArchive } from '../src/archive-init.ts'
 import { loadArchiveIndex } from '../src/archive-source.ts'
 import { dailyEntryPath } from '../src/archive-index.ts'
 
@@ -24,16 +25,6 @@ afterEach(async () => {
 })
 
 const NOW = new Date(2026, 9, 22, 12, 0, 0)
-
-describe('calendarDate', () => {
-  it('reads the calendar date in the given zone', () => {
-    expect(calendarDate(new Date('2026-10-22T00:30:00+08:00'), 'Asia/Shanghai')).toBe('2026-10-22')
-  })
-
-  it('rolls the day over when the zone is behind', () => {
-    expect(calendarDate(new Date('2026-10-22T00:30:00+08:00'), 'UTC')).toBe('2026-10-21')
-  })
-})
 
 describe('initArchive', () => {
   it('creates the skeleton in an empty root', async () => {
@@ -73,8 +64,15 @@ describe('initArchive', () => {
   })
 
   it('lands the first note in the month folder of the injected date', async () => {
-    const date = calendarDate(NOW)
+    const date = readClock(NOW).date
     const result = await initArchive(ctx, dir, NOW)
     expect(result.created).toContain(dailyEntryPath('notes/', date))
+  })
+
+  it('lays out the day blocks in order before anything writes them', async () => {
+    await initArchive(ctx, dir, NOW)
+    const text = await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8')
+    expect(text.indexOf('## 时间')).toBeGreaterThan(-1)
+    expect(text.indexOf('## 时间')).toBeLessThan(text.indexOf('## 事件'))
   })
 })

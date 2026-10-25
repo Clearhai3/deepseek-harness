@@ -3,6 +3,8 @@
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { INDEX_FILENAME, dailyEntryPath } from './archive-index.ts'
+import { readClock } from './archive-clock.ts'
+import { daySeed } from './archive-day.ts'
 
 /** Section path the skeleton declares for notes; the map and the note must agree. */
 const NOTES_PATH = 'notes/'
@@ -41,27 +43,6 @@ const SKELETON_ABOUT = `# 关于我
 <!-- 比如: 先讲原理再给代码 / 别替我改文件 / 说话直接点 -->
 `
 
-/**
- * @param now - clock reading.
- * @param timeZone - IANA zone name; omit to use the process zone.
- * @returns the calendar date in that zone as `YYYY-MM-DD`.
- */
-export function calendarDate(now: Date, timeZone?: string): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
-}
-
-/**
- * @param date - local calendar date, `YYYY-MM-DD`,
- * @returns the first note a fresh archive starts with.
- */
-export function skeletonNote(date: string): string {
-  const weekday = new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(new Date(`${date}T12:00:00`))
-  return `# ${date} · ${weekday}
-
-<!-- 从这里开始写。AI 也会往这里记。 -->
-`
-}
-
 /** What one `archive_init` call produced. */
 export interface ArchiveInitResult {
   /** Absolute archive root that received the skeleton. */
@@ -85,12 +66,12 @@ export async function initArchive(ctx: Context, root: string, now: Date): Promis
   if (await ctx.fs.stat(map) !== undefined) {
     throw new Error(`memory archive: ${INDEX_FILENAME} already exists under ${root}; refusing to overwrite an archive`)
   }
-  const date = calendarDate(now)
+  const clock = readClock(now)
   const created: string[] = []
   const kept: string[] = []
   const fillers = [
     { path: 'about.md', text: SKELETON_ABOUT },
-    { path: dailyEntryPath(NOTES_PATH, date), text: skeletonNote(date) },
+    { path: dailyEntryPath(NOTES_PATH,clock. date), text: daySeed(clock) },
   ]
   for (const filler of fillers) {
     const target = await ctx.fs.resolve(join(root, filler.path))

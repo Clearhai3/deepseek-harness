@@ -10,6 +10,8 @@
         { "path": "../../../vendor/cordis" },
         { "path": "../../../vendor/schemastery" },
         { "path": "../../core/tools" },
-        { "path": "../../fs/fs" }
+        { "path": "../../fs/fs" },
+        { "path": "../../sandbox/sandbox" },
+        { "path": "../../sandbox/sandbox-policy" }
     ]
 }

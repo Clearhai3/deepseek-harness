@@ -11,7 +11,9 @@ import { loadArchiveIndex, readArchiveTarget } from './archive-source.ts'
 import { renderArchiveList } from './list-output.ts'
 import { renderArchiveRead } from './read-output.ts'
 import { initArchive } from './archive-init.ts'
+import { appendToArchive } from './archive-append.ts'
 import { renderArchiveInit } from './init-output.ts'
+import { renderAppend } from './append-output.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -73,6 +75,22 @@ export function apply(ctx: Context, config: Config): void {
     isConcurrencySafe: () => false,
     async execute() {
       return renderArchiveInit(await initArchive(ctx, root, new Date()))
+    },
+  }))
+  ctx.tools.register(defineTool({
+    name: 'archive_append',
+    description: 'Append one entry to a log section (`kind: append`) of the memory archive. The entry gets the archive-zone timestamp and lands on that section\'s page for the day.',
+    parameters: {
+      section: { type: 'string', required: true, description: 'Log section declared by archive.yaml (kind: append).' },
+      text: { type: 'string', required: true, description: 'Entry body. Markdown is fine, but no `##` or `###` headings.' },
+      title: { type: 'string', description: 'Short heading text placed after the time.' },
+      important: { type: 'boolean', description: 'Mark the entry with ⭐ so it can be grepped.' },
+    },
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) {
+      const index = await loadArchiveIndex(ctx, root)
+      return renderAppend(await appendToArchive(ctx, root, index, args, new Date(), exec))
     },
   }))
 }
