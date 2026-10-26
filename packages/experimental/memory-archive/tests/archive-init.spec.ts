@@ -69,10 +69,9 @@ describe('initArchive', () => {
     expect(result.created).toContain(dailyEntryPath('notes/', date))
   })
 
-  it('lays out the day blocks in order before anything writes them', async () => {
+  it('opens the first page with a title and nothing else', async () => {
     await initArchive(ctx, dir, NOW)
     const text = await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8')
-    expect(text.indexOf('## 时间')).toBeGreaterThan(-1)
-    expect(text.indexOf('## 时间')).toBeLessThan(text.indexOf('## 事件'))
+    expect(text).toBe('# 2026-10-22 · 周四\n')
   })
 })

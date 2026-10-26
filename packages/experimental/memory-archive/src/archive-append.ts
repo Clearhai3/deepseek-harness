@@ -6,9 +6,9 @@ import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
 import { readClock } from './archive-clock.ts'
 import { commitText } from './archive-commit.ts'
 import { ensureDay } from './archive-day.ts'
+import { appendEntry, type Entry } from './archive-entry.ts'
 import { sectionTargetPath } from './archive-locate.ts'
 import { decideWrite } from './archive-policy.ts'
-import { EVENT_BLOCK, appendToBlock } from './archive-structure.ts'
 import { resolveSection } from './archive-source.ts'
 
 /** One entry the caller wants added. */
@@ -17,16 +17,11 @@ export interface AppendRequest {
   readonly section: string
   /** Body of the entry; becomes the text under the heading. */
   readonly text: string
-  /** Heading text after the time; omitted leaves just the time. */
-  readonly title?: string
-  /** Marks the entry with ⭐ so `grep '^### ⭐'` finds it. */
-  readonly important?: boolean
-  /** Block inside the section; defaults to the event block. */
-  readonly block?: string
+  /** Bare-word tags, searchable by `check`. */
+  readonly tags?: readonly string[]
+  /** Structured fields such as `设备: 台式机`; every value must be a string. */
+  readonly fields?: Readonly<Record<string, unknown>>
 }
-
-/** The parts of an entry that shape its stanza. */
-export type StanzaInput = Omit<AppendRequest, 'section' | 'block'>
 
 /** What one append produced. */
 export interface AppendResult {
@@ -56,33 +51,20 @@ function requireAppendable(section: ArchiveSection): void {
 }
 
 /**
- * @param text - caller-supplied body.
- * @returns the body with surrounding blank lines removed.
- * @throws when the body is empty or would forge a block or an entry heading.
+ * @param request - entry to add.
+ * @param now - then instant the entry is stamped with.
+ * @returns the record, with the absent metadata filled in.
+ * @throws when a field value is not a string; the tool schema cannot say so.
  */
-function checkBody(text: string): string {
-  const body = text.replace(/^\s*\n/u, '').trimEnd()
-  if (body.trim().length === 0) throw new Error('memory archive: text must not be empty')
-  for (const line of body.split('\n')) {
-    if (line.startsWith('## ')) {
-      throw new Error('memory archive: text may not contain a `## ` heading; it would split the file into new blocks')
+export function toEntry(request: AppendRequest, now: Date): Entry {
+  const fields: Record<string, string> = {}
+  for (const [key, value] of Object.entries(request.fields ?? {})) {
+    if (typeof value !== 'string') {
+      throw new Error(`memory archive: field ${JSON.stringify(key)} must be a string, got ${typeof value}`)
     }
-    if (line.startsWith('### ')) {
-      throw new Error('memory archive: text may not contain a `### ` heading; pass `title` instead')
-    }
+    fields[key] = value
   }
-  return body
-}
-
-/**
- * @param entry - entry to render.
- * @param time - `HH:MM` in the archive's zone.
- * @returns the stanza text, without trailing newlines.
- */
-export function renderStanza(entry: StanzaInput, time: string): string {
-  const star = entry.important === true ? '⭐ ' : ''
-  const title = entry.title === undefined ? '' : ` · ${entry.title}`
-  return `### ${star}${time}${title}\n\n${checkBody(entry.text)}`
+  return { at: now, tags: request.tags ?? [], fields, text: request.text }
 }
 
 /**
@@ -99,10 +81,10 @@ export async function appendToArchive(
 ): Promise<AppendResult> {
   const section = resolveSection(index, request.section)
   requireAppendable(section)
+  const entry = toEntry(request, now)
   const clock = readClock(now)
-  const stanza = renderStanza(request, clock.time)
   const path = sectionTargetPath(section, clock.date)
   const written = await commitText(ctx, root, path, current =>
-    appendToBlock(ensureDay(current, clock), request.block ?? EVENT_BLOCK, stanza), exec)
+    appendEntry(ensureDay(current, clock), entry), exec)
   return { section: section.name, ...written }
 }

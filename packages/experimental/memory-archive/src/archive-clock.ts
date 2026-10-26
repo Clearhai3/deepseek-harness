@@ -7,7 +7,7 @@ export const ARCHIVE_TIME_ZONE = 'Asia/Shanghai'
 export interface ClockReading {
   /** Calendar date in the archive's zone, `YYYY-MM-DD`. */
   readonly date: string
-  /** `HH:MM` in the archive's zone. */
+  /** `HH:MM:SS` in the archive's zone. */
   readonly time: string
   /** Weekday in the archive's zone, e.g. `周四`. */
   readonly weekday: string
@@ -32,7 +32,7 @@ function read(zone: string | undefined, now: Date, kind: 'date' | 'time' | 'week
   }
   // hourCycle h23 keeps midnight at 00:00; hour12:false can yield 24:00 in some ICU builds.
   return new Intl.DateTimeFormat('en-GB', {
-    timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    timeZone: zone, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
   }).format(now)
 }
 

@@ -62,3 +62,12 @@ export function between(from: Date, to: Date): string {
   const left = hours % 24
   return left === 0 ? `${days} 天` : `${days} 天 ${left} 小时`
 }
+
+/**
+ * @param at - 一个时刻。
+ * @returns 档案时区下的 `YYYY-MM-DD HH:MM:SS`，与 `parse` 互逆。
+ */
+export function format(at: Date): string {
+  const reading = readClock(at)
+  return `${reading.date} ${reading.time}`
+}

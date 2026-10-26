@@ -79,12 +79,12 @@ export function apply(ctx: Context, config: Config): void {
   }))
   ctx.tools.register(defineTool({
     name: 'archive_append',
-    description: 'Append one entry to a log section (`kind: append`) of the memory archive. The entry gets the archive-zone timestamp and lands on that section\'s page for the day.',
+    description: 'Append one entry to a log section (`kind: append`) of the memory archive. Each entry becomes one line `<time> [tags, 键: 值] · text`, stamped with the archive zone and landed on that section\'s page for the day.',
     parameters: {
       section: { type: 'string', required: true, description: 'Log section declared by archive.yaml (kind: append).' },
-      text: { type: 'string', required: true, description: 'Entry body. Markdown is fine, but no `##` or `###` headings.' },
-      title: { type: 'string', description: 'Short heading text placed after the time.' },
-      important: { type: 'boolean', description: 'Mark the entry with ⭐ so it can be grepped.' },
+      text: { type: 'string', required: true, description: 'Entry body. The first line follows `· `; later lines go below it, separated by blank lines. No line may start with a timestamp or with `# `·' },
+      tags: { type: 'array', items: { type: 'string' }, description: 'Bare-word tags written inside the brackets, searchable by `check`. Put `⭐` first for an important entry.' },
+      fields: { type: 'object', additionalProperties: true, description: 'Structured string fields such as { "设备": "台式机" }, rendered as `键: 值` after the tags.' },
     },
     output: TEXT_OUTPUT,
     isConcurrencySafe: () => false,

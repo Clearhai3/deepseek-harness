@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
-import { appendToArchive, renderStanza } from '../src/archive-append.ts'
+import { appendToArchive, toEntry } from '../src/archive-append.ts'
 import { loadArchiveIndex } from '../src/archive-source.ts'
 
 const MAP = `version: 2
@@ -27,7 +27,7 @@ sections:
     warning: none
 `
 
-const NOW = new Date(2026, 9, 22, 14, 38)
+const NOW = new Date(2026, 9, 22, 14, 38, 0)
 
 let dir: string
 let ctx: Context
@@ -44,37 +44,36 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
 
-describe('renderStanza', () => {
-  it('heads the entry with the time', () => {
-    expect(renderStanza({ text: '正文' }, '14:38')).toBe('### 14:38\n\n正文')
+describe('toEntry', () => {
+  it('fills in empty metadata', () => {
+    expect(toEntry({ section: 'notes', text: '正文' }, NOW))
+      .toEqual({ at: NOW, tags: [], fields: {}, text: '正文' })
   })
 
-  it('adds the title and the ⭐ marker', () => {
-    expect(renderStanza({ text: '正文', title: '决定', important: true }, '14:38'))
-      .toBe('### ⭐ 14:38 · 决定\n\n正文')
-  })
-
-  it('refuses a body that would forge a block', () => {
-    expect(() => renderStanza({ text: '## 假区块' }, '14:38')).toThrow(/may not contain a `## `/u)
-  })
-
-  it('refuses an empty body', () => {
-    expect(() => renderStanza({ text: '    ' }, '14:38')).toThrow(/must not be empty/u)
+  it('refuses a field whose value is not a string', () => {
+    expect(() => toEntry({ section: 'notes', text: '正文', fields: { 设备: 7 } }, NOW)).toThrow(/must be a string/u)
   })
 })
 
 describe('appendToArchive', () => {
-  it('seeds a new day and writes the entry into the event block', async () => {
+  it('seeds a new day and writes one record line', async () => {
     await writeFile(join(dir, 'archive.yaml'), MAP, 'utf8')
     const index = await loadArchiveIndex(ctx, dir)
-    const result = await appendToArchive(ctx, dir, index, { section: 'notes', text: '正文', title: '起点' }, NOW)
+    const result = await appendToArchive(ctx, dir, index, { section: 'notes', text: '起点', tags: ['上线'] }, NOW)
     expect(result.path).toBe('notes/2026-10/2026-10-22.md')
     expect(result.created).toBe(true)
     const text = await readFile(join(dir, result.path), 'utf8')
-    expect(text.startsWith('# 2026-10-22 · 周四')).toBe(true)
-    expect(text).toContain('## 时间')
-    expect(text.indexOf('## 时间')).toBeLessThan(text.indexOf('## 事件'))
-    expect(text).toContain('### 14:38 · 起点\n\n正文')
+    expect(text).toBe('# 2026-10-22 · 周四\n\n2026-10-22 14:38:00 [上线] · 起点\n')
+  })
+
+  it('writes the tags and the fields into one slot', async () => {
+    await writeFile(join(dir, 'archive.yaml'), MAP, 'utf8')
+    const index = await loadArchiveIndex(ctx, dir)
+    const result = await appendToArchive(ctx, dir, index, {
+      section: 'notes', text: '拆骨架', tags: ['⭐', '档案插件'], fields: { 设备: '台式机' },
+    }, NOW)
+    const text = await readFile(join(dir, result.path), 'utf8')
+    expect(text).toContain('2026-10-22 14:38:00 [⭐, 档案插件, 设备: 台式机] · 拆骨架\n')
   })
 
   it('keeps an existing day intact and appends below it', async () => {
@@ -84,10 +83,15 @@ describe('appendToArchive', () => {
     const again = await appendToArchive(ctx, dir, index, { section: 'notes', text: '第二条' }, NOW)
     expect(again.created).toBe(false)
     const text = await readFile(join(dir, again.path), 'utf8')
-    expect(text).toContain('第一条')
-    expect(text).toContain('第二条')
     expect(text.indexOf('第一条')).toBeLessThan(text.indexOf('第二条'))
     expect(text.match(/^# /gmu)).toHaveLength(1)
+  })
+
+  it('refuses a body that would split into two entries', async () => {
+    await writeFile(join(dir, 'archive.yaml'), MAP, 'utf8')
+    const index = await loadArchiveIndex(ctx, dir)
+    await expect(appendToArchive(ctx, dir, index, { section: 'notes', text: '2026-10-22 15:00:00 [] · 假' }, NOW))
+      .rejects.toThrow(/timestamp/u)
   })
 
   it('refuses a reference section', async () => {

@@ -1,4 +1,4 @@
-import { between, now, parse } from '../src/archive-time.ts'
+import { between, format, now, parse } from '../src/archive-time.ts'
 import { describe, expect, it } from 'vitest'
 
 describe('parse', () => {
@@ -47,5 +47,16 @@ describe('now', () => {
     const instant = now()
     expect(instant.at).toBeInstanceOf(Date)
     expect(instant.reading.date).toMatch(/^\d{4}-\d{2}-\d{2}$/u)
+  })
+})
+
+describe('format', () => {
+  it('writes the archive stamp that parse reads back', () => {
+    const at = parse('2026-10-25 19:29:29') as Date
+    expect(format(at)).toBe('2026-10-25 19:29:29')
+  })
+
+  it('reads UTC as Beijing wall time', () => {
+    expect(format(new Date('2026-10-25T11:29:29Z'))).toBe('2026-10-25 19:29:29')
   })
 })
