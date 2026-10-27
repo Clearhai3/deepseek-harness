@@ -123,7 +123,7 @@ export function apply(ctx: Context, config: Config): void {
         ...(args.tags === undefined ? {} : { tags: args.tags }),
       }
       const result = await checkArchive(ctx, root, index, filter, args.section)
-      return renderCheck(result.hits)
+      return renderCheck(result)
     },
   }))
 }

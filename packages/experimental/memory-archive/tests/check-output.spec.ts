@@ -25,17 +25,32 @@ describe('summarize', () => {
 })
 
 describe('renderCheck', () => {
+  const HIT = {
+    path: 'journal/2026-10/2026-10-26.md',
+    line: 3,
+    entry: { at: AT, tags: ['⭐', '档案插件'], fields: { 设备: '台式机' }, text: '拆骨架完成: 一条记录压成一行' },
+  }
+
+  /** 一条命中该长成什么样: 只写一次，两条测试共用。 */
+  const LINE = 'journal/2026-10/2026-10-26.md:3  2026-10-26 18:48:25  [⭐, 档案插件, 设备: 台式机]  拆骨架完成: 一条记录压成一行'
+
+  /** 跳过文件时那一段提醒: 同样只写一次。 */
+  const SKIP = 'Skipped 1 file(s) above the 1 MB limit: journal/huge.md'
+
   it('says so when nothing matched', () => {
-    expect(renderCheck([])).toBe('No entries matched.')
+    expect(renderCheck({ hits: [], skipped: [] })).toBe('No entries matched.')
   })
 
   it('puts path, line, time, metadata and summary on one line', () => {
-    expect(renderCheck([{
-      path: 'journal/2026-10/2026-10-26.md',
-      line: 3,
-      entry: { at: AT, tags: ['⭐', '档案插件'], fields: { 设备: '台式机' }, text: '拆骨架完成：一条记录压成一行' },
-    }])).toBe(
-      'journal/2026-10/2026-10-26.md:3  2026-10-26 18:48:25  [⭐, 档案插件, 设备: 台式机]  拆骨架完成：一条记录压成一行',
-    )
+    expect(renderCheck({ hits: [HIT], skipped: [] })).toBe(LINE)
+  })
+
+  it('reports the files it had to skip', () => {
+    expect(renderCheck({ hits: [HIT], skipped: ['journal/huge.md'] })).toBe(`${LINE}\n\n${SKIP}`)
+  })
+
+  it('never says "no entries" when some files were not searched', () => {
+    expect(renderCheck({ hits: [], skipped: ['journal/huge.md'] }))
+      .toBe(`No entries matched the filter. ${SKIP}`)
   })
 })

@@ -2,13 +2,21 @@
 
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
-import { findEntries, type EntryFilter } from './archive-entry.ts'
+import { type Entry, findEntries, type EntryFilter } from './archive-entry.ts'
 import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
 import { MAX_READ_BYTES, resolveSection } from './archive-source.ts'
-import type { CheckHit } from './check-output.ts'
 
 /** 目录最多往下走几层。`YYYY-MM` 一层就够；真档案平铺是零层。 */
 const MAX_DEPTH = 2
+
+/** 一条命中: 它在档案里的位置，以及那条记录。 */
+export interface CheckHit {
+  /** 档案相对路径。 */
+  readonly path: string
+  /** 记录首行行号，从 1 开始。 */
+  readonly line: number
+  readonly entry: Entry
+}
 
 /**一次搜索的结果。 */
 export interface CheckResult {

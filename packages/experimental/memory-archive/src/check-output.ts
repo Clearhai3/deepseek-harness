@@ -1,21 +1,14 @@
 /** Renders `archive_check` hits for the model. */
 
-import { renderMeta, type Entry } from './archive-entry.ts'
+import type { CheckResult } from './archive-check.ts'
+import { renderMeta } from './archive-entry.ts'
+import { MAX_READ_BYTES } from './archive-source.ts'
 import { format } from './archive-time.ts'
 
 /** 正文摘要要在呈现里最多留几个字符。 */
 export const SUMMARY_CHARS = 30
 /** 一行里各列之间的分隔。双空格只写这一次。 */
 const COLUMN_GAP = '  '
-
-/** 一条命中: 它在档案里的位置，以及那条记录。 */
-export interface CheckHit {
-  /** 档案相对路径。 */
-  readonly path: string
-  /** 记录首行行号，从 1 开始。 */
-  readonly line: number
-  readonly entry: Entry
-}
 
 /**
  * @param text - 正文。
@@ -27,17 +20,29 @@ export function summarize(text: string): string {
 }
 
 /**
- * @param hits - 命中，顺序由调用方决定。
- * @returns 一行一条: `相对路径:行号  时间戳  [元数据]  摘要`；没有命中时说明一句。
+ * @param skipped - 因为太大而没被读的文件。
+ * @returns 一句提醒；没有跳过时是 undefined。
  */
-export function renderCheck(hits: readonly CheckHit[]): string {
-  if (hits.length === 0) return 'No entries matched.'
-  return hits
-    .map(hit => [
-      `${hit.path}:${hit.line}`,
-      format(hit.entry.at),
-      renderMeta(hit.entry.tags, hit.entry.fields),
-      summarize(hit.entry.text),
-    ].join(COLUMN_GAP))
-    .join('\n')
+function skipNote(skipped: readonly string[]): string | undefined {
+  if (skipped.length === 0) return undefined
+  const limit = `${Math.round(MAX_READ_BYTES / (1024 * 1024))} MB`
+  return `Skipped ${skipped.length} file(s) above the ${limit} limit: ${skipped.join(', ')}`
+}
+
+/**
+ * @param result - 命中，以及被跳过的文件。
+ * @returns 一行一条；有文件被跳过时，末尾必须说清，绝不静默。
+ */
+export function renderCheck(result: CheckResult): string {
+  const lines = result.hits.map(hit => [
+    `${hit.path}:${hit.line}`,
+    format(hit.entry.at),
+    renderMeta(hit.entry.tags, hit.entry.fields),
+    summarize(hit.entry.text),
+  ].join(COLUMN_GAP))
+  const note = skipNote(result.skipped)
+  if (lines.length === 0) {
+    return note === undefined ? 'No entries matched.' : `No entries matched the filter. ${note}`
+  }
+  return note === undefined ? lines.join('\n') : `${lines.join('\n')}\n\n${note}`
 }
