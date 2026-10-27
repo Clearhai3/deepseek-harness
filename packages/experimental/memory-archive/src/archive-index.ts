@@ -21,7 +21,7 @@ export const SECTION_WARNINGS = ['strong', 'light', 'none'] as const
 export type SectionWarning = typeof SECTION_WARNINGS[number]
 
 /** Where an appendable section puts new entries. */
-export const APPEND_LAYOUTS = ['daily', 'timeline', 'single'] as const
+export const APPEND_LAYOUTS = ['daily', 'single'] as const
 
 /** One appendable section's file-selection rule. */
 export type AppendLayout = typeof APPEND_LAYOUTS[number]

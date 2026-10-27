@@ -97,10 +97,15 @@ describe('archive index', () => {
   it('matches the path shape to the layout', () => {
     expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j.md', layout: 'daily' })))
       .toThrow(/must be a directory when layout is daily/u)
-    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j/', layout: 'timeline' })))
-      .toThrow(/must be a file when layout is timeline/u)
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j.md', layout: 'single' })))
+      .not.toThrow()
     expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'always-loaded', path: 'dir/' })))
       .toThrow(/must be a file, not a directory/u)
+  })
+
+  it('rejects the retired timeline layout', () => {
+    expect(() => parseArchiveIndex(doc({ ...BASE, kind: 'append', path: 'j/', layout: 'timeline' })))
+      .toThrow(/layout must be one of daily, single/u)
   })
 
   it('rejects a non-string description', () => {

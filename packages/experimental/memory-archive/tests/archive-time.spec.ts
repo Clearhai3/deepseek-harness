@@ -1,4 +1,4 @@
-import { between, format, now, parse } from '../src/archive-time.ts'
+import { between, format, now, parse, parseBoundary } from '../src/archive-time.ts'
 import { describe, expect, it } from 'vitest'
 
 describe('parse', () => {
@@ -58,5 +58,23 @@ describe('format', () => {
 
   it('reads UTC as Beijing wall time', () => {
     expect(format(new Date('2026-10-25T11:29:29Z'))).toBe('2026-10-25 19:29:29')
+  })
+})
+
+describe('parsseBoundary', () => {
+  it('opens a bare day at midnight', () => {
+    expect(parseBoundary('2026-10-26', 'start')?.toISOString()).toBe('2026-10-25T16:00:00.000Z')
+  })
+
+  it('closes a bare day at its last secound', () => {
+    expect(parseBoundary('2026-10-26', 'end')?.toISOString()).toBe('2026-10-26T15:59:59.000Z')
+  })
+
+  it('leaves an explicit time alone', () => {
+    expect(parseBoundary('2026-10-26 10:00:00', 'end')?.toISOString()).toBe('2026-10-26T02:00:00.000Z')
+  })
+
+  it('rejects a day that does not exist', () => {
+    expect(parseBoundary('2026-02-31', 'start')).toBeUndefined()
   })
 })

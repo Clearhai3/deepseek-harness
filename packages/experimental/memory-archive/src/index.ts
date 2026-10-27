@@ -14,6 +14,10 @@ import { initArchive } from './archive-init.ts'
 import { appendToArchive } from './archive-append.ts'
 import { renderArchiveInit } from './init-output.ts'
 import { renderAppend } from './append-output.ts'
+import { checkArchive } from './archive-check.ts'
+import { renderCheck } from './check-output.ts'
+import { parseBoundary, type TimeEdge } from './archive-time.ts'
+import type { EntryFilter } from './archive-entry.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -91,6 +95,35 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args, exec) {
       const index = await loadArchiveIndex(ctx, root)
       return renderAppend(await appendToArchive(ctx, root, index, args, new Date(), exec))
+    },
+  }))
+  ctx.tools.register(defineTool({
+    name: 'archive_check',
+    description: 'Find entries in the archive log sections by time range and tags. Returns file, line number, timestamp and a short summary per hit; body text is never searched. Use archive_read to read a hit in full.',
+    parameters: {
+      from: { type: 'string', description: 'Start of the range, inclusive: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM:SS` in the archive zone.' },
+      to: { type: 'string', description: 'End of the range, inclusive; same formats as `from`.' },
+      tags: { type: 'array', items: { type: 'string' }, description: 'Every tag must match. Metadata only, never body text.' },
+      section: { type: 'string', description: 'Restrict to one log section. Omit to search every `kind: append` section.' },
+    },
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => true,
+    async execute(args) {
+      const index = await loadArchiveIndex(ctx, root)
+      const edge = (text: string, kind: TimeEdge): Date => {
+        const at = parseBoundary(text, kind)
+        if (at === undefined) {
+          throw new Error(`memory archive: ${JSON.stringify(text)} is not a valid ${kind === 'start' ? 'range start' : 'range end'}; use \`YYYY-MM-DD\` or \`YYYY-MM-DD HH:MM:SS\``)
+        }
+        return at
+      }
+      const filter: EntryFilter = {
+        ...(args.from === undefined ? {} : { from: edge(args.from, 'start') }),
+        ...(args.to === undefined ? {} : { to: edge(args.to, 'end') }),
+        ...(args.tags === undefined ? {} : { tags: args.tags }),
+      }
+      const result = await checkArchive(ctx, root, index, filter, args.section)
+      return renderCheck(result.hits)
     },
   }))
 }

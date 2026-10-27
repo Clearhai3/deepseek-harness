@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parse } from '../src/archive-time.ts'
-import { appendEntry, parseEntryLine, renderEntry, splitEntries } from '../src/archive-entry.ts'
+import { appendEntry, findEntries, parseEntryLine, renderEntry, splitEntries } from '../src/archive-entry.ts'
 import type { Entry } from '../src/archive-entry.ts'
 
 const AT = parse('2026-10-26 14:42:51') as Date
@@ -83,5 +83,41 @@ describe('appendEntry', () => {
     const first = appendEntry('', { at: AT, tags: [], fields: {}, text: '一' })
     const second = appendEntry(first, { at: AT, tags: [], fields: {}, text: '二' })
     expect(splitEntries(second).map(entry => entry.text)).toEqual(['一', '二'])
+  })
+})
+
+describe('findEntries', () => {
+  const DOC = [
+    '# 2026-10-26 · 周一',
+    '',
+    '2026-10-26 08:00:00 [上线] · 起来了',
+    '2026-10-26 12:00:00 [⭐, 设计] · 定案',
+    '',
+    '续写属于上一条',
+    '2026-10-26 20:00:00 [下线] · 收工',
+  ].join('\n')
+
+  it('reports 1-based line numbers', () => {
+    expect(findEntries(DOC, {}).map(hit => hit.line)).toEqual([3, 4, 7])
+  })
+
+  it('keeps continuation lines inside their record', () => {
+    expect(findEntries(DOC, { tags: ['设计'] })[0]?.entry.text).toBe('定案\n\n续写属于上一条')
+  })
+
+  it('filters by an inclusive time range', () => {
+    const from = parse('2026-10-26 12:00:00') as Date
+    const to = parse('2026-10-26 20:00:00') as Date
+    expect(findEntries(DOC, { from, to }).map(hit => hit.line)).toEqual([4, 7])
+  })
+
+  it('requires every tag to match', () => {
+    expect(findEntries(DOC, { tags: ['⭐'] }).map(hit => hit.line)).toEqual([4])
+    expect(findEntries(DOC, { tags: ['⭐', '设计'] }).map(hit => hit.line)).toEqual([4])
+    expect(findEntries(DOC, { tags: ['⭐', '上线'] })).toEqual([])
+  })
+
+  it('never matches on body text', () => {
+    expect(findEntries(DOC, { tags: ['续写'] })).toEqual([])
   })
 })

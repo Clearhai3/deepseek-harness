@@ -71,3 +71,21 @@ export function format(at: Date): string {
   const reading = readClock(at)
   return `${reading.date} ${reading.time}`
 }
+
+/** 时间区间的端点。 */
+export type TimeEdge = 'start' | 'end'
+
+/** 只给了日期、没给时刻的写法。 */
+const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/u
+
+/**
+ * @param text - `YYYY-MM-DD`、`YYYY-MM-DD HH:MM:SS`，或配 dateHint 的 `HH:MM:SS`。
+ * @param edge - 只给日期时，补成当天开头还是当天结尾。
+ * @param dateHint - 裸时间必须给日期。
+ * @returns 该时刻；写法不合法或日期不存在时返回 undefined。
+ */
+export function parseBoundary(text: string, edge: TimeEdge, dateHint?: string): Date | undefined {
+  const trimmed = text.trim()
+  if (DAY_ONLY.test(trimmed)) return parse(`${trimmed} ${edge === 'start' ? '00:00:00' : '23:59:59'}`)
+  return parse(trimmed, dateHint)
+}
