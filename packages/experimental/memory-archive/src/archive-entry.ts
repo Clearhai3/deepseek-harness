@@ -3,7 +3,7 @@
 import { parse, format } from './archive-time.ts'
 
 /** 一条记录的第一行。标题行 (`# …`) 和空行都匹配不上。 */
-const ENTRY = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[([^\]]*)\] · (.*)$/u
+const ENTRY = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*(?:\[|［)([^\]］]*)(?:\]|］)\s*(?:·|・|•|⋅)\s?(.*)$/u
 
 /** 拆出来的一条记录。 */
 export interface Entry {
@@ -28,12 +28,12 @@ export function parseEntryLine(line: string): Entry | undefined {
 
   const tags: string[] = []
   const fields: Record<string, string> = {}
-  for (const item of (match[2] as string).split(', ')) {
+  for (const item of (match[2] as string).split(META_SEPARATOR)) {
     const part = item.trim()
     if (part.length === 0) continue
-    const colon = part.indexOf(': ')
+    const colon = part.search(FIELD_SEPARATOR)
     if (colon === -1) tags.push(part)
-    else fields[part.slice(0, colon)] = part.slice(colon + 2)
+    else fields[part.slice(0, colon).trim()] = part.slice(colon + 1).trim()
   }
   return { at, tags, fields, text: match[3] as string }
 }
@@ -78,13 +78,19 @@ export function splitEntries(text: string): Entry[] {
   return splitEntriesWithLines(text).map(hit => hit.entry)
 }
 
+/** 元数据项之间的分隔符；手改档案时可能是全角。 */
+const META_SEPARATOR = /[,，]/u
+
+/** 字段名与值之间的分隔符；同上。 */
+const FIELD_SEPARATOR = /[:：]/u
+
 /** 元数据里不许出现的字符: 会拆错括号内容，或伪造一个字段。 */
-const FORBIDDEN_IN_META = /[[\],]/u
+const FORBIDDEN_IN_META = /[[\],，：:]/u
 
 /**
  * @param tags - 裸词标签。
  * @param fields - 结构化字段。
- * @returns `[⭐, 档案插件，设备: 台式机]`；两者都空时是 `[]`。只拼不校验，读路径也要用。
+ * @returns `[⭐, 档案插件, 设备: 台式机]`；两者都空时是 `[]`。只拼不校验，读路径也要用。
  */
 export function renderMeta(tags: readonly string[], fields: Readonly<Record<string, string>>): string {
   const items = [...tags, ...Object.entries(fields).map(([key, value]) => `${key}: ${value}`)]
@@ -111,9 +117,9 @@ export function renderEntry(entry: Entry): string {
   const fields = Object.fromEntries(
     Object.entries(entry.fields).map(([key, value]) => [key.trim(), value.trim()]),
   )
-  for (const item of [...tags, ...Object.entries(fields).map(([key, value]) => `${key}: ${value}`)]) {
+  for (const item of [...tags, ...Object.keys(fields), ...Object.values(fields)]) {
     if (FORBIDDEN_IN_META.test(item)) {
-      throw new Error(`memory archive: metadata item ${JSON.stringify(item)} may not contain brackets or commas`)
+      throw new Error(`memory archive: metadata item ${JSON.stringify(item)} may not contain brackets, commas or colons`)
     }
   }
   return `${format(entry.at)} ${renderMeta(tags, fields)} · ${text}`

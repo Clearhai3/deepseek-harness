@@ -23,6 +23,15 @@ describe('parseEntryLine', () => {
   it('rejects an impossible time', () => {
     expect(parseEntryLine('2026-02-31 10:00:00 [x] · 不存在')).toBeUndefined()
   })
+
+  it('reads full-width separators the same way', () => {
+    expect(parseEntryLine('2026-10-26 14:42:51 [⭐，档案插件，设备：台式机] · 拆骨架'))
+      .toEqual({ at: AT, tags: ['⭐', '档案插件'], fields: { 设备: '台式机' }, text: '拆骨架' })
+  })
+
+  it('reads full-width brackets and a full-width middle dot', () => {
+    expect(parseEntryLine('2026-10-26 14:42:51 ［⭐］・ 拆骨架')?.tags).toEqual(['⭐'])
+  })
 })
 
 describe('renderEntry', () => {
@@ -56,6 +65,18 @@ describe('renderEntry', () => {
 
   it('refuses metadata that would break the slot', () => {
     expect(() => renderEntry({ at: AT, tags: ['a]b'], fields: {}, text: 'x' })).toThrow(/brackets/u)
+  })
+
+  it('round-trips a hand-edited line into half-width form', () => {
+    const line = '2026-10-26 14:42:51 [⭐，档案插件，设备：台式机] · 拆骨架'
+    expect(renderEntry(parseEntryLine(line) as Entry))
+      .toBe('2026-10-26 14:42:51 [⭐, 档案插件, 设备: 台式机] · 拆骨架')
+  })
+
+  it('still accepts ordinary fields and rejects a full-width colon inside a tag', () => {
+    expect(renderEntry({ at: AT, tags: [], fields: { 设备: '台式机' }, text: 'x' }))
+      .toBe('2026-10-26 14:42:51 [设备: 台式机] · x')
+    expect(() => renderEntry({ at: AT, tags: ['a：b'], fields: {}, text: 'x' })).toThrow()
   })
 })
 
