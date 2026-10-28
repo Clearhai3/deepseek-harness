@@ -12,7 +12,7 @@ export interface ClockReading {
   /** Weekday in the archive's zone, e.g. `周四`. */
   readonly weekday: string
   /** The machine's own reading, present only when it differs from the archive's. */
-  readonly machine?: string
+  readonly machineReading?: string
 }
 
 /**
@@ -51,6 +51,6 @@ export function readClock(now: Date): ClockReading {
     date,
     time,
     weekday,
-    machine: machineDate === date ? machineTime : `${machineDate} ${machineTime}`,
+    machineReading: machineDate === date ? machineTime : `${machineDate} ${machineTime}`,
   }
 }

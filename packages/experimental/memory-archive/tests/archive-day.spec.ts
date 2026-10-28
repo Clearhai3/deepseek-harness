@@ -3,7 +3,7 @@ import { daySeed, dayTitle, ensureDay } from '../src/archive-day.ts'
 import type { ClockReading } from '../src/archive-clock.ts'
 
 const SAME: ClockReading = { date: '2026-10-22', time: '14:38:00', weekday: '周四' }
-const OFF: ClockReading = { date: '2026-10-22', time: '14:38:00', weekday: '周四', machine: '2026-10-21 23:38:00' }
+const OFF: ClockReading = { date: '2026-10-22', time: '14:38:00', weekday: '周四', machineReading: '2026-10-21 23:38:00' }
 
 describe('dayTitle', () => {
   it('names the date and weekday in one line', () => {

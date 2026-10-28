@@ -17,7 +17,7 @@ describe('readClock', () => {
 
   it('adds the machine reading only when it disagrees', () => {
     const same = readClock(new Date('2026-10-22T04:00:00Z'))
-    expect(same.machine).toBeUndefined()
+    expect(same.machineReading).toBeUndefined()
     expect(same.time).toBe('12:00:00')
   })
 

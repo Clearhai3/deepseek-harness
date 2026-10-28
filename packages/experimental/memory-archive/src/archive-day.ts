@@ -7,8 +7,8 @@ import type { ClockReading } from './archive-clock.ts'
  * @returns the `#` title line, naming the machine reading when the zones disagree.
  */
 export function dayTitle(clock: ClockReading): string {
-  const machine = clock.machine === undefined ? '' : `（本机 ${clock.machine}）`
-  return `# ${clock.date} · ${clock.weekday}${machine}`
+  const machineNote = clock.machineReading === undefined ? '' : `（本机 ${clock.machineReading}）`
+  return `# ${clock.date} · ${clock.weekday}${machineNote}`
 }
 
 /**
