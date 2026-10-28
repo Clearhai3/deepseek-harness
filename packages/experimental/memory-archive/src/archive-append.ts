@@ -1,5 +1,6 @@
 /** Appending one entry to a log section, under the permission and shape gates. */
 
+import { HOST_FIELD } from './archive-host.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
@@ -56,7 +57,7 @@ function requireAppendable(section: ArchiveSection): void {
  * @returns the record, with the absent metadata filled in.
  * @throws when a field value is not a string; the tool schema cannot say so.
  */
-export function toEntry(request: AppendRequest, now: Date): Entry {
+export function toEntry(request: AppendRequest, now: Date, host: string): Entry {
   const fields: Record<string, string> = {}
   for (const [key, value] of Object.entries(request.fields ?? {})) {
     if (typeof value !== 'string') {
@@ -64,6 +65,10 @@ export function toEntry(request: AppendRequest, now: Date): Entry {
     }
     fields[key] = value
   }
+  if (HOST_FIELD in fields) {
+    throw new Error(`memory archive: field ${JSON.stringify(HOST_FIELD)} is filled by the tool itself; omit it`)
+  }
+  fields[HOST_FIELD] = host
   return { at: now, tags: request.tags ?? [], fields, text: request.text }
 }
 
@@ -74,14 +79,15 @@ export function toEntry(request: AppendRequest, now: Date): Entry {
  * @param index - validated map.
  * @param request - entry to add.
  * @param now - clock reading; injected so tests can pin both date and time.
+ * @param host - 机器名; 由调用方注入，让测试能钉住。
  * @returns what was written.
  */
 export async function appendToArchive(
-  ctx: Context, root: string, index: ArchiveIndex, request: AppendRequest, now: Date, exec?: ToolRunContext,
+  ctx: Context, root: string, index: ArchiveIndex, request: AppendRequest, now: Date, host: string, exec?: ToolRunContext,
 ): Promise<AppendResult> {
   const section = resolveSection(index, request.section)
   requireAppendable(section)
-  const entry = toEntry(request, now)
+  const entry = toEntry(request, now, host)
   const clock = readClock(now)
   const path = sectionTargetPath(section, clock.date)
   const written = await commitText(ctx, root, path, current =>

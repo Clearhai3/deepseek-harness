@@ -18,6 +18,7 @@ import { checkArchive } from './archive-check.ts'
 import { renderCheck } from './check-output.ts'
 import { parseBoundary, type TimeEdge } from './archive-time.ts'
 import type { EntryFilter } from './archive-entry.ts'
+import { readHost } from './archive-host.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -88,13 +89,13 @@ export function apply(ctx: Context, config: Config): void {
       section: { type: 'string', required: true, description: 'Log section declared by archive.yaml (kind: append).' },
       text: { type: 'string', required: true, description: 'Entry body. The first line follows `· `; later lines go below it, separated by blank lines. No line may start with a timestamp or with `# `·' },
       tags: { type: 'array', items: { type: 'string' }, description: 'Bare-word tags written inside the brackets, searchable by `check`. Put `⭐` first for an important entry.' },
-      fields: { type: 'object', additionalProperties: true, description: 'Structured string fields such as { "设备": "台式机" }, rendered as `键: 值` after the tags.' },
+      fields: { type: 'object', additionalProperties: true, description: 'Structured string fields such as { "来源": "手改" }, rendered as `键: 值` after the tags. `主机` is filled by the tool itself; do not pass it.' },
     },
     output: TEXT_OUTPUT,
     isConcurrencySafe: () => false,
     async execute(args, exec) {
       const index = await loadArchiveIndex(ctx, root)
-      return renderAppend(await appendToArchive(ctx, root, index, args, new Date(), exec))
+      return renderAppend(await appendToArchive(ctx, root, index, args, new Date(), readHost(),exec))
     },
   }))
   ctx.tools.register(defineTool({
