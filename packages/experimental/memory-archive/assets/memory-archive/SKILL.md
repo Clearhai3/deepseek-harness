@@ -9,6 +9,10 @@ The user's own files. `archive.yaml` declares the sections; list before writing,
 
 Tags: `⭐` first when the entry matters, then exactly one category — `打卡` / `落地` / `踩坑` / `决策` / `对话` — then a domain word reused from the archive, then 0–2 free topic words.
 
+## Every session
+
+If the archive declares `temp` and `todo`, read them first. `temp` is both "what must be loaded every time" and the 3-day tidying reminder (`上次整理`); its entries age 3 / 9 / 15 / 30 days — the older one is, the firmer the decision must be. At 30 days it moves to `longterm`, which is kept, never deleted.
+
 ## Tools
 - `archive_list` — the sections declared by the map
 - `archive_check` — find entries by time range and tags (never body text)
