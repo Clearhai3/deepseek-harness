@@ -16,7 +16,7 @@ import { renderArchiveInit } from './init-output.ts'
 import { renderAppend } from './append-output.ts'
 import { checkArchive } from './archive-check.ts'
 import { renderCheck } from './check-output.ts'
-import { parseBoundary, type TimeEdge } from './archive-time.ts'
+import { now, parseBoundary, type TimeEdge } from './archive-time.ts'
 import type { EntryFilter } from './archive-entry.ts'
 import { readHost } from './archive-host.ts'
 
@@ -79,7 +79,7 @@ export function apply(ctx: Context, config: Config): void {
     output: TEXT_OUTPUT,
     isConcurrencySafe: () => false,
     async execute() {
-      return renderArchiveInit(await initArchive(ctx, root, new Date()))
+      return renderArchiveInit(await initArchive(ctx, root, now()))
     },
   }))
   ctx.tools.register(defineTool({
@@ -95,7 +95,7 @@ export function apply(ctx: Context, config: Config): void {
     isConcurrencySafe: () => false,
     async execute(args, exec) {
       const index = await loadArchiveIndex(ctx, root)
-      return renderAppend(await appendToArchive(ctx, root, index, args, new Date(), readHost(),exec))
+      return renderAppend(await appendToArchive(ctx, root, index, args, now(), readHost(),exec))
     },
   }))
   ctx.tools.register(defineTool({

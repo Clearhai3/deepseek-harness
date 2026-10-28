@@ -43,10 +43,10 @@ describe('between', () => {
 })
 
 describe('now', () => {
-  it('returns the instant together with its reading', () => {
-    const instant = now()
-    expect(instant.at).toBeInstanceOf(Date)
-    expect(instant.reading.date).toMatch(/^\d{4}-\d{2}-\d{2}$/u)
+  it('returns the current instant', () => {
+    const at = now()
+    expect(at).toBeInstanceOf(Date)
+    expect(Math.abs(at.getTime() - Date.now())).toBeLessThan(1000)
   })
 })
 

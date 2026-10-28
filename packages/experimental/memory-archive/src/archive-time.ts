@@ -1,21 +1,13 @@
 /** 档案时间本体: 读表 / 解析 / 算间隔。全仓库只有这里可以 new Date()。 */
 
 import { readClock } from './archive-clock.ts'
-import type { ClockReading } from './archive-clock.ts'
 
 /** 中国自 1991 年起不再用夏令时，Asia/Shanghai 固定 +08:00。 */
 const ARCHIVE_OFFSET_MINUTES = 8 * 60
 
-/** 一次读数: 原始时刻 + 已格式化的读法。 */
-export interface Instant {
-  readonly at: Date
-  readonly reading: ClockReading
-}
-
 /** 现在。全仓库唯一调用 `new Date()` 的地方。 */
-export function now(): Instant {
-  const at = new Date()
-  return { at, reading: readClock(at) }
+export function now(): Date {
+  return new Date()
 }
 
 const FULL = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/u
