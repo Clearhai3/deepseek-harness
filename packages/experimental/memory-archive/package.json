@@ -23,7 +23,8 @@
     },
     "files": [
         "lib/index.js",
-        "lib/types/**/*.d.ts"
+        "lib/types/**/*.d.ts",
+        "assets/**"
     ],
     "license": "MIT",
     "peerDependencies": {
@@ -31,7 +32,8 @@
         "@deepseek-ai/dsh-fs": "workspace:*",
         "@deepseek-ai/dsh-sandbox": "workspace:*",
         "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
-        "@deepseek-ai/dsh-tools": "workspace:*"
+        "@deepseek-ai/dsh-tools": "workspace:*",
+        "@deepseek-ai/dsh-skill": "workspace:*"
     },
     "dependencies": {
         "@deepseek-ai/schemastery": "workspace:~",
@@ -43,6 +45,7 @@
         "@deepseek-ai/dsh-fs-local": "workspace:*",
         "@deepseek-ai/dsh-sandbox": "workspace:*",
         "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
-        "@deepseek-ai/dsh-tools": "workspace:*"
+        "@deepseek-ai/dsh-tools": "workspace:*",
+        "@deepseek-ai/dsh-skill": "workspace:*"
     }
 }

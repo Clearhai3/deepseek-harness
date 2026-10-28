@@ -7,6 +7,7 @@ import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-skill'
 import { loadArchiveIndex, readArchiveTarget } from './archive-source.ts'
 import { renderArchiveList } from './list-output.ts'
 import { renderArchiveRead } from './read-output.ts'
@@ -19,6 +20,7 @@ import { renderCheck } from './check-output.ts'
 import { now, parseBoundary, type TimeEdge } from './archive-time.ts'
 import type { EntryFilter } from './archive-entry.ts'
 import { readHost } from './archive-host.ts'
+import { loadArchiveSkill } from './archive-skill.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -26,7 +28,7 @@ const TEXT_OUTPUT = {
 }
 
 export const name = 'tool-memory-archive'
-export const inject = ['tools', 'fs']
+export const inject = ['tools', 'fs', 'skills']
 
 /** Deployment-chosen archive location. */
 export interface Config {
@@ -48,6 +50,8 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error(`memory archive: root must be an absolute path, got ${JSON.stringify(config.root)}`)
   }
   const root = config.root
+  /** 增删工具后，同步更新 `assets/memory-archive/SKILL.md` 的 `## Tools` —— 那份清单是给模型看的目录。 */
+  ctx.skills.register({ ...loadArchiveSkill(), source: 'bundled' })
   ctx.tools.register(defineTool({
     name: 'archive_list',
     description: 'List the sections declared by the memory archive map, in declaration order.',
