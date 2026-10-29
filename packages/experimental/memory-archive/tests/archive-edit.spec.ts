@@ -214,4 +214,26 @@ sections:
     await expect(editArchive(ctx, dir, index, { section: 'memory', old: 'x', new: 'y' }, NOW, HOST))
       .rejects.toThrow(/does not exist/u)
   })
+
+  it('refuses to edit a soft section when its trail target cannot be written', async () => {
+    await writeFile(join(dir, 'archive.yaml'), `version: 2
+trail: locked
+sections:
+  - name: locked
+    path: locked/
+    kind: append
+    level: gated
+    warning: strong
+    layout: daily
+  - name: identity
+    path: identity.md
+    kind: always-loaded
+    level: soft
+    warning: strong
+`, 'utf8')
+    const index = await loadArchiveIndex(ctx, dir)
+    await expect(editArchive(ctx, dir, index, { section: 'identity', old: '我是小鲸鱼', new: 'x' }, NOW, HOST))
+      .rejects.toThrow(/trail target "locked" cannot be written/u)
+    expect(await readFile(join(dir, 'identity.md'), 'utf8')).toBe('# 人格\n\n我是小鲸鱼\n')
+  })
 })

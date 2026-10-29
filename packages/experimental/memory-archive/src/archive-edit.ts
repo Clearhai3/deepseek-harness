@@ -78,14 +78,23 @@ function singleDailySection(index: ArchiveIndex): ArchiveSection | undefined {
  * @throws when no trail target can be determined without guessing.
  */
 function resolveTrailTarget(index: ArchiveIndex, section: string): ArchiveSection {
-  if (index.trail !== undefined) return resolveSection(index, index.trail)
-  const single = singleDailySection(index)
-  if (single !== undefined) return single
-  throw new Error(
-    `memory archive: section ${JSON.stringify(section)} is soft and must leave a trail, but no single daily log `
+  const target = index.trail !== undefined ? resolveSection(index, index.trail) : singleDailySection(index)
+  if (target === undefined) {
+    throw new Error(
+      `memory archive: section ${JSON.stringify(section)} is soft and must leave a trail, but no single daily log `
         + 'section was found. Declare one (`kind: append`, `layout: daily`) or point at it with a top-level '
         + '`trail: <section>` in archive.yaml.',
-  )
+    )
+  }
+  // 留痕本身写不进去时，这次编辑必须整笔取消：soft 要的正是"你一定知道"。
+  const decision = decideWrite(target)
+  if (!decision.allowed) {
+    throw new Error(
+      `memory archive: section ${JSON.stringify(section)} is soft and must leave a trail, but its trail target `
+         + `${JSON.stringify(target.name)} cannot be written: ${decision.reason}`,
+    )
+  }
+  return target
 }
 
 export async function editArchive(
