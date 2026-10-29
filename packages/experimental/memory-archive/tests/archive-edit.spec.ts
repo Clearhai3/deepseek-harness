@@ -141,8 +141,9 @@ describe('editArchive', () => {
     const index = await loadArchiveIndex(ctx, dir)
     const result = await editArchive(ctx, dir, index, { section: 'identity', old: '我是小鲸鱼', new: '我是会记帐的小鲸鱼' }, NOW, HOST)
     expect(result.trail).toEqual({ path: 'notes/2026-10/2026-10-22.md' })
-    expect(await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8'))
-      .toContain(`[⭐, 档案, edit, 主机: ${HOST}]`)
+    const trail = await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8')
+    expect(trail).toContain(`[⭐, 档案, edit, 主机: ${HOST}]`)
+    expect(trail).toContain('旧 1 行 -> 新 1 行')
   })
 
   it('falls back to the only daily log when no trail is declared', async () => {
@@ -235,5 +236,15 @@ sections:
     await expect(editArchive(ctx, dir, index, { section: 'identity', old: '我是小鲸鱼', new: 'x' }, NOW, HOST))
       .rejects.toThrow(/trail target "locked" cannot be written/u)
     expect(await readFile(join(dir, 'identity.md'), 'utf8')).toBe('# 人格\n\n我是小鲸鱼\n')
+  })
+
+  it('reports how many lines a multi-line edit replaced', async () => {
+    const index = await loadArchiveIndex(ctx, dir)
+    const result = await editArchive(ctx, dir, index, {
+      section: 'identity', old: '# 人格\n\n我是小鲸鱼', new: '# 人格 (改过) ',
+    }, NOW, HOST)
+    expect(result.trail).toEqual({ path: 'notes/2026-10/2026-10-22.md' })
+    expect(await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8'))
+      .toContain('旧 3 行 -> 新 1 行')
   })
 })

@@ -42,6 +42,14 @@ export function lineOf(text: string, offset: number): number {
   return text.slice(0, offset).split('\n').length
 }
 
+/**
+ * @param text - 一段文本。
+ * @returns 它占几行；留痕里用来说明这次改动覆盖了多少行。
+ */
+export function lineCount(text: string): number {
+  return text.split('\n').length
+}
+
 /** @returns 第一行的前 80 个字符，用于留痕摘要。 */
 export function firstLine(text: string): string {
   const end = text.indexOf('\n')
@@ -130,7 +138,8 @@ export async function editArchive(
 
   const appended = await appendToArchive(ctx, root, index, {
     section: trail.name,
-    text: `改了 ${section.name} (${relative}:${line}): ${firstLine(request.old)} -> ${firstLine(request.new)}`,
+    text: `改了 ${section.name} (${relative}:${line}) [旧 ${lineCount(request.old)} 行 -> 新 ${lineCount(request.new)} 行]: `
+        + `${firstLine(request.old)} -> ${firstLine(request.new)}`,
     tags: ['⭐', '档案', 'edit'],
   }, now, host, exec)
   return { ...result, trail: { path: appended.path } }
