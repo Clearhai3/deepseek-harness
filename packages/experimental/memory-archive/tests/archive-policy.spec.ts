@@ -15,8 +15,10 @@ describe('decideWrite', () => {
   })
 
   it('refuses gated and says why', () => {
-    const decision = decideWrite(section('gated'))
-    expect(decision.allowed).toBe(false)
-    expect(decision.reason).toMatch(/gated/u)
+    expect(decideWrite(section('gated'))).toEqual({
+      allowed: false,
+      needsTrail: false,
+      reason: 'section "x" is gated: the user must authorize this write',
+    })
   })
 })

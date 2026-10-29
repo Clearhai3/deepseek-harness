@@ -2,15 +2,10 @@
 
 import type { ArchiveSection } from './archive-index.ts'
 
-/** The verdict for one attempted write. */
-export interface WriteDecision {
-  /** Whether the write may proceed. */
-  readonly allowed: boolean
-  /** Why it was refused, when it was. */
-  readonly reason?: string
-  /** Whether the write must leave a ⭐ trail in the daily log. */
-  readonly needsTrail: boolean
-}
+/** The verdict for one attempted write. A refusal always carries its reason. */
+export type WriteDecision =
+  | { readonly allowed: true; readonly needsTrail: boolean }
+  | { readonly allowed: false; readonly needsTrail: false; readonly reason: string }
 
 /**
  * @param section - declared section about to be written.

@@ -42,7 +42,7 @@ export interface AppendResult {
  */
 function requireAppendable(section: ArchiveSection): void {
   const decision = decideWrite(section)
-  if (!decision.allowed) throw new Error(decision.reason ?? 'memory archive: write refused')
+  if (!decision.allowed) throw new Error(decision.reason)
   if (section.kind !== 'append') {
     throw new Error(
       `memory archive: section ${JSON.stringify(section.name)} is ${section.kind}, not a log; `

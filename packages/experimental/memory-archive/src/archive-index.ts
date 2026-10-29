@@ -56,6 +56,8 @@ export interface ArchiveIndex {
   readonly version: 2
   /** Declared sections, in declaration order. */
   readonly sections: readonly ArchiveSection[]
+  /** Section that recesives the trail when a soft section is edited; absent when undeclared. */
+  readonly trail?: string
 }
 
 /**
@@ -169,5 +171,26 @@ export function parseArchiveIndex(text: string): ArchiveIndex {
       ...(description === undefined ? {} : { description }),
     }
   })
-  return { version: 2, sections }
+  const trail = resolveTrail(document.trail, sections)
+  return { version: 2, sections, ...(trail === undefined ? {} : { trail }) }
+}
+
+/**
+ * @param declared - the document's top-level `trail`, if any.
+ * @param sections - parsed sections, in declaration order.
+ * @returns the trail section name, when one is declared.
+ * @throws when the declaration does not name an appendable daily section.
+ */
+function resolveTrail(declared: unknown, section: readonly ArchiveSection[]): string | undefined {
+  if (declared === undefined) return undefined
+  if (typeof declared !== 'string' || declared.length === 0) {
+    fail('`trail` must be a non-empty section name')
+  }
+  const target = section.find(section => section.name === declared)
+  if (target === undefined) fail(`\`trail\` names unknown section ${JSON.stringify(declared)}`)
+  if (target.kind !== 'append' || target.layout !== 'daily') {
+    const shape = target.layout === undefined ? target.kind : `${target.kind} / ${target.layout}`
+    fail(`\`trail\` must name a section with kind: append and layout: daily, but ${JSON.stringify(declared)} is ${shape}`)
+  }
+  return declared
 }

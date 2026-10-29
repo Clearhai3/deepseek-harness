@@ -21,6 +21,8 @@ import { now, parseBoundary, type TimeEdge } from './archive-time.ts'
 import type { EntryFilter } from './archive-entry.ts'
 import { readHost } from './archive-host.ts'
 import { loadArchiveSkill } from './archive-skill.ts'
+import { editArchive } from './archive-edit.ts'
+import { renderEdit } from './edit-output.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -129,6 +131,22 @@ export function apply(ctx: Context, config: Config): void {
       }
       const result = await checkArchive(ctx, root, index, filter, args.section)
       return renderCheck(result)
+    },
+  }))
+  ctx.tools.register(defineTool({
+    name: 'archive_edit',
+    description: 'Replace one exact piece of text in a declared archive section. `old` must apper exactly once; the edit is refused otherwise. Soft sections leave a ⭐ trail in the daily log.',
+    parameters: {
+      section: { type: 'string', required: true, description: 'Section name declared by archive.yaml.' },
+      file: { type: 'string', description: 'Relative file inside a directory section. Required when the section is a directory.' },
+      old: { type: 'string', required: true, description: 'Exact text to replace, copied from archive_read, Must be unique in the file.' },
+      new: { type: 'string', required: true, description: 'Replacement text. Empty string deletes the matched text.' },
+    },
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) {
+      const index = await loadArchiveIndex(ctx, root)
+      return renderEdit(await editArchive(ctx, root, index, args, now(), readHost(), exec))
     },
   }))
 }

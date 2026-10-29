@@ -12,6 +12,10 @@ function doc(...entries: Record<string, unknown>[]): string {
   return `version: 2\nsections:\n${body}\n`
 }
 
+function docWithTrail(trail: string, ...entries: Record<string, unknown>[]): string {
+  return `${doc(...entries)}trail: ${JSON.stringify(trail)}\n`
+}
+
 describe('archive index', () => {
   it('reads sections in declaration order', () => {
     expect(parseArchiveIndex(doc(
@@ -131,5 +135,29 @@ describe('archive index', () => {
     for (const date of ['2026-10-2', '26-10-22', '2026//10/22', '', '2026-10-22T00:00:00']) {
       expect(() => dailyEntryPath('journal/', date)).toThrow(/YYYY-MM-DD/u)
     }
+  })
+
+  it('records a trail target declared at the top level', () => {
+    expect(parseArchiveIndex(docWithTrail('journal', BASE,
+      { name: 'journal', path: 'journal/', kind: 'append', level: 'free', warning: 'none', layout: 'daily' },
+    )).trail).toBe('journal')
+  })
+
+  it('rejects a trail that names no declared section', () => {
+    expect(() => parseArchiveIndex(docWithTrail('nope', BASE,
+      { name: 'journal', path: 'journal/', kind: 'append', level: 'free', warning: 'none', layout: 'daily' },
+    ))).toThrow(/`trail` names unknown section/u)
+  })
+
+  it('rejects a trail that is not an appendable daily section', () => {
+    expect(() => parseArchiveIndex(docWithTrail('a', BASE)))
+      .toThrow(/kind: append and layout: daily/u)
+    expect(() => parseArchiveIndex(docWithTrail('log',
+      { name: 'log', path: 'log.md', kind: 'append', level: 'free', warning: 'none', layout: 'single' },
+    ))).toThrow(/kind: append and layout: daily/u)
+  })
+
+  it('rejects a trail that is not a section name', () => {
+    expect(() => parseArchiveIndex(docWithTrail('', BASE))).toThrow(/must be a non-empty section name/u)
   })
 })

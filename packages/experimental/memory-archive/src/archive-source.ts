@@ -63,7 +63,7 @@ export type ArchiveRead = ArchiveFileRead | ArchiveDirectoryRead
  * @returns the archive-relative path to read.
  * @throws when the file part leaves the archive root.
  */
-function sectionPath(section: string, file: string | undefined): string {
+export function sectionPath(section: string, file: string | undefined): string {
   if (file === undefined) return section
   if (file.length === 0) throw new Error('memory archive: file must be a non-empty string')
   if (file.startsWith('/') || file.includes('\\') || file.split('/').includes('..')) {
