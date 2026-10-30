@@ -36,7 +36,7 @@ export interface ClockReading {
  * @param kind - which field to format.
  * @returns one formatted field.
  */
-function read(zone: string | undefined, now: Date, kind: 'date' | 'time' | 'weekday'): string {
+function read(zone: string | undefined, now: Date, kind: 'date' | 'time'): string {
   if (kind === 'date') {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
