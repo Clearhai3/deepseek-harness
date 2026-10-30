@@ -1,6 +1,7 @@
 /** The structured map that turns an archive's prose navigation into data. */
 
 import { parse } from 'yaml'
+import { decideWrite } from './archive-policy.ts'
 
 /** Section behaviours the archive tools enforce. */
 export const SECTION_KINDS = ['always-loaded', 'reference', 'append', 'frozen'] as const
@@ -192,5 +193,7 @@ function resolveTrail(declared: unknown, section: readonly ArchiveSection[]): st
     const shape = target.layout === undefined ? target.kind : `${target.kind} / ${target.layout}`
     fail(`\`trail\` must name a section with kind: append and layout: daily, but ${JSON.stringify(declared)} is ${shape}`)
   }
+  const decision = decideWrite(target)
+  if (!decision.allowed) fail(`\`trail\` points at a section the model cannot write: ${decision.reason}`)
   return declared
 }

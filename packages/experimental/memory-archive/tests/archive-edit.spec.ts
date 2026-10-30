@@ -216,9 +216,8 @@ sections:
       .rejects.toThrow(/does not exist/u)
   })
 
-  it('refuses to edit a soft section when its trail target cannot be written', async () => {
+  it('refuses to edit a soft section when its only daily log cannot be written', async () => {
     await writeFile(join(dir, 'archive.yaml'), `version: 2
-trail: locked
 sections:
   - name: locked
     path: locked/

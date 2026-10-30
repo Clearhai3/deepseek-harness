@@ -160,4 +160,10 @@ describe('archive index', () => {
   it('rejects a trail that is not a section name', () => {
     expect(() => parseArchiveIndex(docWithTrail('', BASE))).toThrow(/must be a non-empty section name/u)
   })
+
+  it('rejects a trail that points at a gated section', () => {
+    expect(() => parseArchiveIndex(docWithTrail('vault',
+      { name: 'vault', path: 'vault/', kind: 'append', level: 'gated', warning: 'none', layout: 'daily' },
+    ))).toThrow(/points at a section the model cannot write/u)
+  })
 })
