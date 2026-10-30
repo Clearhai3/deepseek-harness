@@ -24,6 +24,8 @@ import { readHost } from './archive-host.ts'
 import { assertSkillListsTools, loadArchiveSkill } from './archive-skill.ts'
 import { editArchive } from './archive-edit.ts'
 import { renderEdit } from './edit-output.ts'
+import { renderTime } from './time-output.ts'
+import { answerTime } from './archive-time-query.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -155,6 +157,20 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args, exec) {
       const index = await loadArchiveIndex(ctx, root)
       return renderEdit(await editArchive(ctx, root, index, args, now(), readHost(), exec))
+    },
+  }))
+  registerTool(defineTool({
+    name: 'archive_time',
+    description: 'Read the archive clock and, when asked, the interval from a past moment to now (or between two moments). Never reads the archive; pass a timestamp you already read from it.',
+    parameters: {
+      since: { type: 'string', description: 'Past timestamp (`YYYY-MM-DD HH:MM:SS`); returns how long ago it was.' },
+      from: { type: 'string', description: 'Start of a span; must be paired with `to`.' },
+      to: { type: 'string', description: 'End of a span; must be paired with `from`.' },
+    },
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => true,
+    execute(args) {
+      return Promise.resolve(renderTime(answerTime(args, now())))
     },
   }))
   assertSkillListsTools(skill.content, registered)

@@ -1,9 +1,6 @@
 /** 档案时间本体: 读表 / 解析 / 算间隔。全仓库只有这里可以 new Date()。 */
 
-import { readClock } from './archive-clock.ts'
-
-/** 中国自 1991 年起不再用夏令时，Asia/Shanghai 固定 +08:00。 */
-const ARCHIVE_OFFSET_MINUTES = 8 * 60
+import { ARCHIVE_OFFSET_MINUTES, readClock } from './archive-clock.ts'
 
 /** 现在。全仓库唯一调用 `new Date()` 的地方。 */
 export function now(): Date {
