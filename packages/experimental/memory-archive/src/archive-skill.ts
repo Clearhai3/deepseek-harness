@@ -52,3 +52,29 @@ export function parseSkillDocument(raw: string): ArchiveSkill {
 export function loadArchiveSkill(): ArchiveSkill {
   return parseSkillDocument(readFileSync(ASSET, 'utf8'))
 }
+
+/**
+ * @returns `## Tools` 小节里登记的工具名，按出现顺序；没有该小节时返回空数组。
+ */
+export function skillToolNames(content: string): string[] {
+  const tools = content.split(/^## /mu).find(part => part.startsWith('Tools'))
+  return tools === undefined ? [] : [...tools.matchAll(/^- `([a-z0-9_-]+)`/gmu)].map(match => match[1] as string)
+}
+
+/**
+ * @param content - SKILL.md body without frontmatter.
+ * @param registered - tool names actually registered, in order.
+ * @throws when the catalog and the registration disagree: the model reads the
+ *   catalog, so a tool missing from it does not exist as far as the model knows.
+ */
+export function assertSkillListsTools(content: string, registered: readonly string[]): void {
+  const listed = skillToolNames(content)
+  const missing = registered.filter(name => !listed.includes(name))
+  const unknown = listed.filter(name => !registered.includes(name))
+  if (missing.length === 0 && unknown.length === 0) return
+  throw new Error(
+    'memory archive: SKILL.md `## Tools` does not match the registered tools'
+      + (missing.length === 0 ? '' : `; missing ${missing.join(', ')}`)
+      + (unknown.length === 0 ? '' : `; unknown ${unknown.join(', ')}`),
+  )
+}

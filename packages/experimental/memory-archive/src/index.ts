@@ -7,6 +7,7 @@ import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-skill'
 import { loadArchiveIndex, readArchiveTarget } from './archive-source.ts'
 import { renderArchiveList } from './list-output.ts'
@@ -20,7 +21,7 @@ import { renderCheck } from './check-output.ts'
 import { now, parseBoundary, type TimeEdge } from './archive-time.ts'
 import type { EntryFilter } from './archive-entry.ts'
 import { readHost } from './archive-host.ts'
-import { loadArchiveSkill } from './archive-skill.ts'
+import { assertSkillListsTools, loadArchiveSkill } from './archive-skill.ts'
 import { editArchive } from './archive-edit.ts'
 import { renderEdit } from './edit-output.ts'
 
@@ -52,9 +53,16 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error(`memory archive: root must be an absolute path, got ${JSON.stringify(config.root)}`)
   }
   const root = config.root
-  /** 增删工具后，同步更新 `assets/memory-archive/SKILL.md` 的 `## Tools` —— 那份清单是给模型看的目录。 */
-  ctx.skills.register({ ...loadArchiveSkill(), source: 'bundled' })
-  ctx.tools.register(defineTool({
+  /** `## Tools` 是给模型看的目录：漏登记的工具，模型眼里等于不存在。末尾自动对账，不靠人记。 */
+  const skill = loadArchiveSkill()
+  ctx.skills.register({ ...skill, source: 'bundled' })
+  /** `## Tools` 是给模型看的目录：注册了什么就得登记什么。末尾对账，漏一个当场起不来。 */
+  const registered: string[] = []
+  const registerTool = (definition: ToolDefinition): void => {
+    registered.push(definition.name)
+    ctx.tools.register(definition)
+  }
+  registerTool(defineTool({
     name: 'archive_list',
     description: 'List the sections declared by the memory archive map, in declaration order.',
     parameters: {},
@@ -64,7 +72,7 @@ export function apply(ctx: Context, config: Config): void {
       return renderArchiveList(await loadArchiveIndex(ctx, root))
     },
   }))
-  ctx.tools.register(defineTool({
+  registerTool(defineTool({
     name: 'archive_read',
     description: 'Read one declared archive section, or one file inside a directory section.',
     parameters: {
@@ -78,7 +86,7 @@ export function apply(ctx: Context, config: Config): void {
       return renderArchiveRead(await readArchiveTarget(ctx, root, index, args.section, args.file))
     },
   }))
-  ctx.tools.register(defineTool({
+  registerTool(defineTool({
     name: 'archive_init',
     description: 'Create the minimal archive skeleton (archive.yaml, about.md, and the first note) in an empty archive root. Refuses when a map already exists.',
     parameters: {},
@@ -88,7 +96,7 @@ export function apply(ctx: Context, config: Config): void {
       return renderArchiveInit(await initArchive(ctx, root, now()))
     },
   }))
-  ctx.tools.register(defineTool({
+  registerTool(defineTool({
     name: 'archive_append',
     description: 'Append one entry to a log section (`kind: append`) of the memory archive. Each entry becomes one line `<time> [tags, 键: 值] · text`, stamped with the archive zone and landed on that section\'s page for the day.',
     parameters: {
@@ -104,7 +112,7 @@ export function apply(ctx: Context, config: Config): void {
       return renderAppend(await appendToArchive(ctx, root, index, args, now(), readHost(),exec))
     },
   }))
-  ctx.tools.register(defineTool({
+  registerTool(defineTool({
     name: 'archive_check',
     description: 'Find entries in the archive log sections by time range and tags. Returns file, line number, timestamp and a short summary per hit; body text is never searched. Use archive_read to read a hit in full.',
     parameters: {
@@ -133,7 +141,7 @@ export function apply(ctx: Context, config: Config): void {
       return renderCheck(result)
     },
   }))
-  ctx.tools.register(defineTool({
+  registerTool(defineTool({
     name: 'archive_edit',
     description: 'Replace one exact piece of text in a declared archive section. `old` must apper exactly once; the edit is refused otherwise. Soft sections leave a ⭐ trail in the daily log.',
     parameters: {
@@ -149,4 +157,5 @@ export function apply(ctx: Context, config: Config): void {
       return renderEdit(await editArchive(ctx, root, index, args, now(), readHost(), exec))
     },
   }))
+  assertSkillListsTools(skill.content, registered)
 }

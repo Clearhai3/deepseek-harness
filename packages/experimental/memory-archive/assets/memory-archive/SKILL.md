@@ -19,3 +19,4 @@ If the archive declares `temp` and `todo`, read them first. `temp` is both "what
 - `archive_read` — open one section, or one file inside a directory section
 - `archive_append` — append one entry to a log section
 - `archive_init` — create a minimal skeleton in an empty archive root
+- `archive_edit` — replace one exact piece of text; `old` must appear exactly once, soft sections leave a ⭐ trail
