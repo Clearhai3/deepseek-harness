@@ -26,6 +26,9 @@ import { editArchive } from './archive-edit.ts'
 import { renderEdit } from './edit-output.ts'
 import { renderTime } from './time-output.ts'
 import { answerTime } from './archive-time-query.ts'
+import { readClock } from './archive-clock.ts'
+import { dueEntries } from './archive-due.ts'
+import { renderDue } from './due-output.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -157,6 +160,21 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args, exec) {
       const index = await loadArchiveIndex(ctx, root)
       return renderEdit(await editArchive(ctx, root, index, args, now(), readHost(), exec))
+    },
+  }))
+  registerTool(defineTool({
+    name: 'archive_due',
+    description: 'List the `temp` entries whose 3/9/15/30-day level has come up, plus and entry whose `起始` is missing, unreadable, or in the future. Fresh entries are counted, never listed as due.',
+    parameters: {},
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => true,
+    async execute() {
+      const index = await loadArchiveIndex(ctx, root)
+      const read = await readArchiveTarget(ctx, root, index, 'temp')
+      if (read.kind !== 'file') {
+        throw new Error(`memory archive: ${read.path} is a directory, but \`temp\` must be a single file`)
+      }
+      return renderDue(dueEntries(read.text, readClock(now()).date))
     },
   }))
   registerTool(defineTool({
