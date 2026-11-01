@@ -29,6 +29,8 @@ import { answerTime } from './archive-time-query.ts'
 import { readClock } from './archive-clock.ts'
 import { dueEntries } from './archive-due.ts'
 import { renderDue } from './due-output.ts'
+import { renderPromote } from './promote-output.ts'
+import { promoteExpired } from './archive-promote.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -175,6 +177,17 @@ export function apply(ctx: Context, config: Config): void {
         throw new Error(`memory archive: ${read.path} is a directory, but \`temp\` must be a single file`)
       }
       return renderDue(dueEntries(read.text, readClock(now()).date))
+    },
+  }))
+  registerTool(defineTool({
+    name: 'archive_promote',
+    description: 'Move every `temp` entry that has lived 30 days into `longterm`, keeping its original `起始`. Writes the new entry before removing the old one: a failure leaves a duplicate, never a hole. Call archive_due first if you want to see the list before it moves.',
+    parameters: {},
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => false,
+    async execute(_args, exec) {
+      const index = await loadArchiveIndex(ctx, root)
+      return renderPromote(await promoteExpired(ctx, root, index, now(), readHost(), exec))
     },
   }))
   registerTool(defineTool({

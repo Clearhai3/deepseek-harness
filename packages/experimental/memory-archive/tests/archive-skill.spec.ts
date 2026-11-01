@@ -53,10 +53,10 @@ describe('assertSkillListsTools', () => {
 })
 
 describe('shipped catalog', () => {
-  it('lists exactly the seven registered tools', () => {
+  it('lists exactly the nine registered tools', () => {
     expect(skillToolNames(loadArchiveSkill().content).sort()).toEqual([
-      'archive_append', 'archive_check', 'archive_edit', 'archive_init',
-      'archive_list', 'archive_read', 'archive_time',
+      'archive_append', 'archive_check', 'archive_due', 'archive_edit', 'archive_init',
+      'archive_list', 'archive_promote', 'archive_read', 'archive_time',
     ])
   })
 })

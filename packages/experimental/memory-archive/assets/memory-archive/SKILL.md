@@ -21,5 +21,6 @@ If the archive declares `temp` and `todo`, read them first. `temp` is both "what
 - `archive_init` — create a minimal skeleton in an empty archive root
 - `archive_edit` — replace one exact piece of text; `old` must appear exactly once, soft sections leave a ⭐ trail
 - `archive_time` — the archive clock; also the gap from a past moment to now
-- `archive_due` — 限时记忆到没到 3/9/15/30 天；也报出写坏的条目
+- `archive_due` — which `temp` entries reached 3 / 9 / 15 / 30 days, plus the broken ones
+- `archive_promote` — move 30-day-old `temp` entries into `longterm`; writes before it deletes
 \ No newline at end of file
