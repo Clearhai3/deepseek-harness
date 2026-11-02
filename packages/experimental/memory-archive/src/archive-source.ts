@@ -2,7 +2,7 @@
 
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
-import { FsError } from '@deepseek-ai/dsh-fs'
+import { FsError, type FsTarget } from '@deepseek-ai/dsh-fs'
 import { INDEX_FILENAME, parseArchiveIndex } from './archive-index.ts'
 import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
 
@@ -16,7 +16,7 @@ import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
  */
 export async function loadArchiveIndex(ctx: Context, root: string): Promise<ArchiveIndex> {
   const path = join(root, INDEX_FILENAME)
-  const target = await ctx.fs.resolve(path)
+  const target = await containedTarget(ctx, root, INDEX_FILENAME)
   const info = await ctx.fs.stat(target)
   if (info === undefined) {
     throw new FsError(`memory archive: no ${INDEX_FILENAME} under ${root}`, 'FS_NOT_FOUND')
@@ -87,7 +87,7 @@ export async function readArchiveTarget(
 ): Promise<ArchiveRead> {
   const section = resolveSection(index, name)
   const relative = sectionPath(section.path, file)
-  const target = await ctx.fs.resolve(join(root, relative))
+  const target = await containedTarget(ctx, root, relative)
   const info = await ctx.fs.stat(target)
   if (info === undefined) {
     throw new FsError(`memory archive: ${relative} does not exist`, 'FS_NOT_FOUND')
@@ -107,4 +107,23 @@ export async function readArchiveTarget(
     throw new FsError(`memory archive: ${relative} is ${info.size} bytes, above the ${MAX_READ_BYTES} limit`, 'FS_TOO_LARGE')
   }
   return { kind: 'file', path: relative, text: await ctx.fs.readText(target) }
+}
+
+/**
+ * 把档案相对路径解析成目标，并确认它没有逃出档案根。
+ * @param ctx - 提供 `fs` 的上下文。
+ * @param root - 档案根。
+ * @param relative - 档案相对路径。
+ * @returns 解析后仍在档案根内的目标。
+ * @throws 解析后落在根外（例如软链把路径指到别处）时。
+ */
+export async function containedTarget(ctx: Context, root: string, relative: string): Promise<FsTarget> {
+  const rootTarget = await ctx.fs.resolve(root)
+  const target = await ctx.fs.resolve(join(root, relative))
+  if (!ctx.fs.contains(rootTarget, target)) {
+    throw new Error(
+      `memory archive: ${relative} resolves outside the archive root; refusing to touch it`,
+    )
+  }
+  return target
 }

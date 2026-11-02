@@ -1,10 +1,10 @@
 /** Creating the minimal archive skeleton in an empty archive root. */
 
-import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { INDEX_FILENAME, dailyEntryPath } from './archive-index.ts'
 import { readClock } from './archive-clock.ts'
 import { daySeed } from './archive-day.ts'
+import { containedTarget } from './archive-source.ts'
 
 /** Section path the skeleton declares for notes; the map and the note must agree. */
 const NOTES_PATH = 'notes/'
@@ -62,7 +62,7 @@ export interface ArchiveInitResult {
  * @throws when the archive already has a map.
  */
 export async function initArchive(ctx: Context, root: string, now: Date): Promise<ArchiveInitResult> {
-  const map = await ctx.fs.resolve(join(root, INDEX_FILENAME))
+  const map = await containedTarget(ctx, root, INDEX_FILENAME)
   if (await ctx.fs.stat(map) !== undefined) {
     throw new Error(`memory archive: ${INDEX_FILENAME} already exists under ${root}; refusing to overwrite an archive`)
   }
@@ -74,7 +74,7 @@ export async function initArchive(ctx: Context, root: string, now: Date): Promis
     { path: dailyEntryPath(NOTES_PATH,clock. date), text: daySeed(clock) },
   ]
   for (const filler of fillers) {
-    const target = await ctx.fs.resolve(join(root, filler.path))
+    const target = await containedTarget(ctx, root, filler.path)
     if (await ctx.fs.stat(target) !== undefined) {
       kept.push(filler.path)
       continue

@@ -1,10 +1,10 @@
 /** Writing a document safely: stage in memory, guard freshness, retry on conflict. */
 
-import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { FsErrorCode } from '@deepseek-ai/dsh-fs'
 import { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { SandboxPolicyService } from '@deepseek-ai/dsh-sandbox-policy'
+import { containedTarget } from './archive-source.ts'
 
 /** How many read-transform-write rounds before giving up. */
 export const MAX_COMMIT_ATTEMPTS = 3
@@ -63,7 +63,7 @@ export async function commitText(
   const policy: WritePolicy = ctx.fs.sandboxMode === undefined || session === undefined || sandboxPolicy === undefined
     ? undefined
     : sandboxPolicy.resolve({ session })
-  const target = await ctx.fs.resolve(join(root, relative))
+  const target = await containedTarget(ctx, root, relative)
   for (let attempt = 0; attempt < MAX_COMMIT_ATTEMPTS; attempt += 1) {
     const info = await ctx.fs.stat(target)
     const before = info === undefined ? '' : await ctx.fs.readText(target)

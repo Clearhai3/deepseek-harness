@@ -1,13 +1,12 @@
 /** Editing text that is already on disk, under the same permission matrix as append. */
 
-import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
 import { appendToArchive } from './archive-append.ts'
 import { commitText } from './archive-commit.ts'
 import { decideWrite } from './archive-policy.ts'
-import { resolveSection, sectionPath } from './archive-source.ts'
+import { containedTarget, resolveSection, sectionPath } from './archive-source.ts'
 
 export interface EditRequest {
   readonly section: string
@@ -116,7 +115,7 @@ export async function editArchive(
   const trail = descision.needsTrail ? resolveTrailTarget(index, section.name) : undefined
 
   const relative = sectionPath(section.path, request.file)  // <- 目录型区块必须给 file
-  const target = await ctx.fs.resolve(join(root, relative))
+  const target = await containedTarget(ctx, root, relative)
   const info = await ctx.fs.stat(target)
   if (info === undefined) throw new Error(`memory archive: ${relative} does not exist`)
   if (info.type === 'directory') {

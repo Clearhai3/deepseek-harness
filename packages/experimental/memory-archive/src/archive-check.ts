@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { type Entry, findEntries, type EntryFilter } from './archive-entry.ts'
 import type { ArchiveIndex, ArchiveSection } from './archive-index.ts'
-import { MAX_READ_BYTES, resolveSection } from './archive-source.ts'
+import { containedTarget, MAX_READ_BYTES, resolveSection } from './archive-source.ts'
 
 /** 目录最多往下走几层。`YYYY-MM` 一层就够；真档案平铺是零层。 */
 const MAX_DEPTH = 2
@@ -51,7 +51,7 @@ function requireLog(index: ArchiveIndex, name: string): ArchiveSection {
  */
 async function filesUnder(ctx: Context, root: string, relative: string): Promise<string[]> {
   const base = relative.replace(/\/+$/u, '')
-  const info = await ctx.fs.stat(await ctx.fs.resolve(join(root, base)))
+  const info = await ctx.fs.stat(await containedTarget(ctx, root, base))
   if (info === undefined) return []
   if (info.type === 'file') return base.endsWith('.md') ? [base] : []
   if (info.type !== 'directory') return []
@@ -59,7 +59,7 @@ async function filesUnder(ctx: Context, root: string, relative: string): Promise
   const found: string[] = []
   const walk = async (absolute: string, at: string, depth: number): Promise<void> => {
     if (depth > MAX_DEPTH) return
-    for (const entry of await ctx.fs.listDir(await ctx.fs.resolve(absolute))) {
+    for (const entry of await ctx.fs.listDir(await containedTarget(ctx, root, at))) {
       const childAbsolute = join(absolute, entry.name)
       const child = `${at}/${entry.name}`
       if (entry.type === 'directory') await walk(childAbsolute, child, depth + 1)
@@ -94,7 +94,7 @@ export async function checkArchive(
   const skipped: string[] = []
   for (const section of sections) {
     for (const path of await filesUnder(ctx, root, section.path)) {
-      const target = await ctx.fs.resolve(join(root, path))
+      const target = await containedTarget(ctx, root, path)
       const info = await ctx.fs.stat(target)
       if (info === undefined || info.type !== 'file') continue
       if (info.size !== undefined && info.size > MAX_READ_BYTES) {
