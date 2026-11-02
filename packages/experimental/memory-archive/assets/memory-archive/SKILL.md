@@ -23,4 +23,5 @@ If the archive declares `temp` and `todo`, read them first. `temp` is both "what
 - `archive_time` — the archive clock; also the gap from a past moment to now
 - `archive_due` — which `temp` entries reached 3 / 9 / 15 / 30 days, plus the broken ones
 - `archive_promote` — move 30-day-old `temp` entries into `longterm`; writes before it deletes
+- `archive_map_write` — replace the whole map document; every change is shown to the user for approval before it is written
 \ No newline at end of file

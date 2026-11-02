@@ -6,7 +6,10 @@ import { INDEX_FILENAME } from './archive-index.ts'
 const READ_ONLY_TOOLS: ReadonlySet<string> = new Set(['read', 'grep', 'glob', 'read_image'])
 
 /** 允许碰地图的工具：只有 init，它内部只做 createIfAbsent。将来从 Config 来。 */
-const MAP_WRITERS: ReadonlySet<string> = new Set(['archive_init'])
+const MAP_WRITERS: ReadonlySet<string> = new Set(['archive_init', 'archive_map_write'])
+
+/** 唯一能改地图的工具名。拒绝文案和工具注册共用它，改名只改一处。 */
+export const MAP_WRITE_TOOL = 'archive_map_write'
 
 /** 判断只需要这个字段——不假装认识整个 ToolExecution，测试就不用造假对象。 */
 export interface ToolCallLike {
@@ -44,12 +47,11 @@ export function mapCall(call: ToolCallLike): string | undefined {
  */
 export function refuse(hit: string): string {
   return `${hit} is the archive map: it declares every section's path and permission level, `
-    + 'so editing it is the same as granting permissions. Only the user may change it. '
-    + 'Do not retry, and do not look for another way to write it — tell the user what you '
-    + 'wanted to change and why, and let them edit it.'
-    + '\n\n'
-    + `${hit} 是档案地图：它声明每个区块的路径与权限等级，改它等于改权限。只有用户本人可以改。`
-    + '不要重试，也不要换别的写法来绕——把你原本想改什么、为什么想改告诉用户，让他自己动手。'
+    + 'so editing it is the same as granting permissions. Do not write it with this tool. '
+    + `Instead call \`${MAP_WRITE_TOOL}\` with the complete new document and a \`reason\`; `
+    + 'the user sees every change and decides.\n\n'
+    + `${hit} 是档案地图：它声明每个区块的路径与权限等级，改它等于改权限。不要用这个工具写它。`
+    + `改用 \`${MAP_WRITE_TOOL}\` 提交完整的新地图和 \`reason\`，用户会看到每一处变化并决定。`
 }
 
 /**

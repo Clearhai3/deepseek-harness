@@ -44,7 +44,9 @@ describe('mapCall', () => {
 
   it('拒绝的话同时说给模型和人听', () => {
     const reason = mapCall(call('write', { file_path: '/x/archive.yaml' })) ?? ''
+    expect(reason).toContain('/x/archive.yaml')
     expect(reason).toContain('user')
+    expect(reason).toContain('archive_map_write')
     expect(reason).toContain('用户')
   })
 })

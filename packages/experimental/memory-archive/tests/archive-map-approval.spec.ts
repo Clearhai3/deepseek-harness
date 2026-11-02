@@ -6,7 +6,7 @@ const approver = (outcome: MapWriteOutcome): MapWriteApprover =>
   ({ request: () => Promise.resolve(outcome) })
 
 /** 默认一套"会批准"的材料；`over` 只换其中一处。 */
-const approval = (over: Partial<MapWriteApproval<object>> = {}): MapWriteApproval<object> => ({
+const approval = (over: Partial<MapWriteApproval> = {}): MapWriteApproval => ({
   approver: approver('allowed-once'),
   agent: {},
   callId: 'c1',

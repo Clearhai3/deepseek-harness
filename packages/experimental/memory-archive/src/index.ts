@@ -31,7 +31,8 @@ import { dueEntries } from './archive-due.ts'
 import { renderDue } from './due-output.ts'
 import { renderPromote } from './promote-output.ts'
 import { promoteExpired } from './archive-promote.ts'
-import { mapGuard } from './archive-map-guard.ts'
+import { MAP_WRITE_TOOL, mapGuard } from './archive-map-guard.ts'
+import { renderMapWrite, writeArchiveMap } from './archive-map-write.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -190,6 +191,19 @@ export function apply(ctx: Context, config: Config): void {
     async execute(_args, exec) {
       const index = await loadArchiveIndex(ctx, root)
       return renderPromote(await promoteExpired(ctx, root, index, now(), readHost(), exec))
+    },
+  }))
+  registerTool(defineTool({
+    name: MAP_WRITE_TOOL,
+    description: 'Replace the whole archive map (archive.yaml) with a new document. Every change is computed and show to the user for approval first; nothing is written it. Pass the complete new document, never a patch.',
+    parameters: {
+      content: { type: 'string', required: true, description: 'The complete new archive.yaml text. It is parsed and validated before anything is shown or written.' },
+      reason: { type: 'string', required: true, description: 'One sentence: why this change is needed. Shown verbatin in the approval prompt and in the audit log.' },
+    },
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) {
+      return renderMapWrite(await writeArchiveMap(ctx, root, args.content, args.reason, exec))
     },
   }))
   registerTool(defineTool({
