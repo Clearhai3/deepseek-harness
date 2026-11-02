@@ -31,6 +31,7 @@ import { dueEntries } from './archive-due.ts'
 import { renderDue } from './due-output.ts'
 import { renderPromote } from './promote-output.ts'
 import { promoteExpired } from './archive-promote.ts'
+import { mapGuard } from './archive-map-guard.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -60,6 +61,7 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error(`memory archive: root must be an absolute path, got ${JSON.stringify(config.root)}`)
   }
   const root = config.root
+  ctx.effect(() => ctx.tools.guard(mapGuard()), 'memory-archive: map guard')
   /** `## Tools` 是给模型看的目录：漏登记的工具，模型眼里等于不存在。末尾自动对账，不靠人记。 */
   const skill = loadArchiveSkill()
   ctx.skills.register({ ...skill, source: 'bundled' })
