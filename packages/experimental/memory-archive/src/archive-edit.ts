@@ -56,6 +56,51 @@ export function firstLine(text: string): string {
 }
 
 /**
+ * @returns 两串从头开始相同的字符数。
+ */
+function commonPrefixLength(a: string, b: string): number {
+  const limit = Math.min(a.length, b.length)
+  let index = 0
+  while (index < limit && a[index] === b[index]) index += 1
+  return index
+}
+
+/**
+ * @returns 从 `from` 起的第一行（跳过开关换行）；到结尾则给一个能读的标记。
+ */
+function excerptFrom(text: string, from: number, width = 60): string {
+  const rest = text.slice(from).replace(/^\n+/u, '')
+  if (rest.length === 0) return '（到此为止）'
+  const end = rest.indexOf('\n')
+  return (end === -1 ? rest : rest.slice(0, end)).slice(0, width)
+}
+
+export interface ChangeDigest {
+  readonly left: string
+  readonly right: string
+}
+
+/**
+ * @param before - 改动前的片段。
+ * @param after - 改动后的片段。
+ * @returns 从第一个不同处起、两侧各自的一段可读摘要。
+ */
+export function describeChange(before: string, after: string): ChangeDigest {
+  const at = commonPrefixLength(before, after)
+  return { left: excerptFrom(before, at), right: excerptFrom(after, at) }
+}
+
+/**
+ * @param before - 改动前的片段。
+ * @param after - 改动后的片段。
+ * @returns 一行式摘要，用于留痕。
+ */
+export function changedDigest(before: string, after: string): string {
+  const { left, right } = describeChange(before, after)
+  return left === right ? left : `${left} -> ${right}`
+}
+
+/**
  * @param text - 当前文件内容。
  * @param old - 要被替换的原文。
  * @param new - 替换后的文本；空串表示删除。
@@ -138,7 +183,7 @@ export async function editArchive(
   const appended = await appendToArchive(ctx, root, index, {
     section: trail.name,
     text: `改了 ${section.name} (${relative}:${line}) [旧 ${lineCount(request.old)} 行 -> 新 ${lineCount(request.new)} 行]: `
-        + `${firstLine(request.old)} -> ${firstLine(request.new)}`,
+        + changedDigest(request.old, request.new),
     tags: ['⭐', '档案', 'edit'],
   }, now, host, exec)
   return { ...result, trail: { path: appended.path } }

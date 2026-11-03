@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
-import { applyEdit, editArchive, firstLine, lineOf } from '../src/archive-edit.ts'
+import { applyEdit, changedDigest, editArchive, firstLine, lineOf } from '../src/archive-edit.ts'
 import { loadArchiveIndex } from '../src/archive-source.ts'
 
 const PAGE = `# 2026-10-25
@@ -245,5 +245,23 @@ sections:
     expect(result.trail).toEqual({ path: 'notes/2026-10/2026-10-22.md' })
     expect(await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8'))
       .toContain('旧 3 行 -> 新 1 行')
+  })
+})
+
+describe('changedDigest', () => {
+  it('尾部追加时指向新增的第一行', () => {
+    expect(changedDigest('A', 'A\nB')).toBe('（到此为止） -> B')
+  })
+
+  it('中间替换时指向真正变的那一行', () => {
+    expect(changedDigest('A\nB\nC', 'A\nX\nC')).toBe('B -> X')
+  })
+
+  it('删除到结尾时右侧给出标记', () => {
+    expect(changedDigest('A\nB', 'A')).toBe('B -> （到此为止）')
+  })
+
+  it('两侧摘要恰好相同时只说一次', () => {
+    expect(changedDigest('A', 'A')).toBe('（到此为止）')
   })
 })
