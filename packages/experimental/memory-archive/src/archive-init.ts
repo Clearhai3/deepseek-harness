@@ -5,6 +5,7 @@ import { INDEX_FILENAME, dailyEntryPath } from './archive-index.ts'
 import { readClock } from './archive-clock.ts'
 import { daySeed } from './archive-day.ts'
 import { containedTarget } from './archive-source.ts'
+import { agentsTemplate, readmeTemplate } from './archive-templates.ts'
 
 /** Section path the skeleton declares for notes; the map and the note must agree. */
 const NOTES_PATH = 'notes/'
@@ -15,6 +16,18 @@ const SKELETON_MAP = `# 这是你的档案地图，插件照着它找到你的�
 # warning -> 人改之前的提醒: strong 强警告 / light 轻提醒 / none 不提醒
 version: 2
 sections:
+  - name: identity
+    path: AGENTS.md
+    kind: always-loaded
+    level: soft
+    warning: strong
+    description: 手册 —— 怎么用这个档案（红线 / 工具用法 / 记录习惯）
+  - name: readme
+    path: README.md
+    kind: reference
+    level: soft
+    warning: light
+    description: 出厂说明 —— 这套东西是什么 / 地图语法 / 十个工具 / 重建步骤
   - name: about
     path: about.md
     kind: reference
@@ -70,6 +83,8 @@ export async function initArchive(ctx: Context, root: string, now: Date): Promis
   const created: string[] = []
   const kept: string[] = []
   const fillers = [
+    { path: 'AGENTS.md', text: agentsTemplate().replaceAll('{{date}}', clock.date) },
+    { path: 'README.md', text: readmeTemplate() },
     { path: 'about.md', text: SKELETON_ABOUT },
     { path: dailyEntryPath(NOTES_PATH,clock. date), text: daySeed(clock) },
   ]

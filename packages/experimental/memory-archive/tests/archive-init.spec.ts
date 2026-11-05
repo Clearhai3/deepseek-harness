@@ -29,7 +29,13 @@ const NOW = new Date(2026, 9, 22, 12, 0, 0)
 describe('initArchive', () => {
   it('creates the skeleton in an empty root', async () => {
     const result = await initArchive(ctx, dir, NOW)
-    expect(result.created).toEqual(['about.md', 'notes/2026-10/2026-10-22.md', 'archive.yaml'])
+    expect(result.created).toEqual([
+      'AGENTS.md',
+      'README.md',
+      'about.md',
+      'notes/2026-10/2026-10-22.md',
+      'archive.yaml',
+    ])
     expect(result.kept).toEqual([])
   })
 
@@ -37,6 +43,8 @@ describe('initArchive', () => {
     await initArchive(ctx, dir, NOW)
     const index = await loadArchiveIndex(ctx, dir)
     expect(index.sections.map(s => [s.name, s.kind, s.level, s.warning, s.layout])).toEqual([
+      ['identity', 'always-loaded', 'soft', 'strong', undefined],
+      ['readme', 'reference', 'soft', 'light', undefined],
       ['about', 'reference', 'soft', 'strong', undefined],
       ['notes', 'append', 'free', 'none', 'daily'],
     ])
@@ -59,7 +67,12 @@ describe('initArchive', () => {
     await writeFile(join(dir, 'about.md'), '我自己的介绍\n', 'utf8')
     const result = await initArchive(ctx, dir, NOW)
     expect(result.kept).toEqual(['about.md'])
-    expect(result.created).toEqual(['notes/2026-10/2026-10-22.md', 'archive.yaml'])
+    expect(result.created).toEqual([
+      'AGENTS.md',
+      'README.md',
+      'notes/2026-10/2026-10-22.md',
+      'archive.yaml',
+    ])
     expect(await readFile(join(dir, 'about.md'), 'utf8')).toBe('我自己的介绍\n')
   })
 
@@ -73,5 +86,20 @@ describe('initArchive', () => {
     await initArchive(ctx, dir, NOW)
     const text = await readFile(join(dir, 'notes/2026-10/2026-10-22.md'), 'utf8')
     expect(text).toBe('# 2026-10-22 · 周四\n')
+  })
+
+  it('stamps the injected date into the handbook and leaves no placeholder', async () => {
+    await initArchive(ctx, dir, NOW)
+    const text = await readFile(join(dir, 'AGENTS.md'), 'utf8')
+    expect(text).toContain('刻于 2026-10-22')
+    expect(text).toContain('v1')
+    expect(text).not.toContain('{{')
+  })
+
+  it('ships a readme that answers what this archive is', async () => {
+    await initArchive(ctx, dir, NOW)
+    const text = await readFile(join(dir, 'README.md'), 'utf8')
+    expect(text).toContain('archive.yaml')
+    expect(text).toContain('archive_init')
   })
 })

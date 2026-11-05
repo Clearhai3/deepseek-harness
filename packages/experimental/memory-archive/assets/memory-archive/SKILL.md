@@ -18,7 +18,7 @@ If the archive declares `temp` and `todo`, read them first. `temp` is both "what
 - `archive_check` — find entries by time range and tags (never body text)
 - `archive_read` — open one section, or one file inside a directory section
 - `archive_append` — append one entry to a log section
-- `archive_init` — create a minimal skeleton in an empty archive root
+- `archive_init` — create the minimal skeleton in an empty archive root: the map, `AGENTS.md` (handbook skeleton with empty instance slots), `README.md`, `about.md`, and the first daily page
 - `archive_edit` — replace one exact piece of text; `old` must appear exactly once, soft sections leave a ⭐ trail
 - `archive_time` — the archive clock; also the gap from a past moment to now
 - `archive_due` — which `temp` entries reached 3 / 9 / 15 / 30 days, plus the broken ones
