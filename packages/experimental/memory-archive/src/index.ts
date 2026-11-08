@@ -33,6 +33,8 @@ import { renderPromote } from './promote-output.ts'
 import { promoteExpired } from './archive-promote.ts'
 import { MAP_WRITE_TOOL, mapGuard } from './archive-map-guard.ts'
 import { renderMapWrite, writeArchiveMap } from './archive-map-write.ts'
+import { createInArchive } from './archive-create.ts'
+import { renderCreate } from './create-output.ts'
 
 const TEXT_OUTPUT = {
   schema: { type: 'string' as const },
@@ -165,6 +167,21 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args, exec) {
       const index = await loadArchiveIndex(ctx, root)
       return renderEdit(await editArchive(ctx, root, index, args, now(), readHost(), exec))
+    },
+  }))
+  registerTool(defineTool({
+    name: 'archive_create',
+    description: 'Create a page the map declares but disk does not have yet. Refuses logs (use archive_append), existing pages (use archive_edit), and gated sections. Soft sections leave a ⭐ trail in the daily log.',
+    parameters: {
+      section: { type: 'string', required: true, description: 'Section name declared by archive.yaml.' },
+      file: { type: 'string', description: 'Relative file inside a directory section. Required when the section is a directory.' },
+      text: { type: 'string', required: true, description: 'Initial text, written verbatim. No timestamp is added; that is what archive_append is for.' },
+    },
+    output: TEXT_OUTPUT,
+    isConcurrencySafe: () => false,
+    async execute(args, exec) {
+      const index = await loadArchiveIndex(ctx, root)
+      return renderCreate(await createInArchive(ctx, root, index, args, now(), readHost(), exec))
     },
   }))
   registerTool(defineTool({

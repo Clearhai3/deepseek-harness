@@ -129,7 +129,7 @@ function singleDailySection(index: ArchiveIndex): ArchiveSection | undefined {
  * @returns the section the trail entry goes into.
  * @throws when no trail target can be determined without guessing.
  */
-function resolveTrailTarget(index: ArchiveIndex, section: string): ArchiveSection {
+export function resolveTrailTarget(index: ArchiveIndex, section: string): ArchiveSection {
   const target = index.trail !== undefined ? resolveSection(index, index.trail) : singleDailySection(index)
   if (target === undefined) {
     throw new Error(
